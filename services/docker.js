@@ -8,6 +8,7 @@ const logger = require('./logger');
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 const BOT_NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const CLOUDFLARED_IMAGE = 'cloudflare/cloudflared:latest';
 
 const ENV_TEMPLATE = `# ---- LINE ----------------------------------------
 LINE_CHANNEL_SECRET=
@@ -59,6 +60,25 @@ function isValidPort(port) {
   return Number.isInteger(port) && port >= 1024 && port <= 65535;
 }
 
+function isValidTunnelToken(token) {
+  return typeof token === 'string' && token.length > 20 && !/\s/.test(token);
+}
+
+function deriveBotName(labels, containerName) {
+  return (labels && labels['netguard.botname']) || stripLeadingSlash(containerName).replace(/^netguard-/, '');
+}
+
+function setEnvValue(envPath, key, value) {
+  let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ENV_TEMPLATE;
+  const re = new RegExp(`^${key}=.*$`, 'm');
+  if (re.test(content)) {
+    content = content.replace(re, `${key}=${value}`);
+  } else {
+    content += `${content.endsWith('\n') ? '' : '\n'}${key}=${value}\n`;
+  }
+  fs.writeFileSync(envPath, content);
+}
+
 function isPortFree(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -78,11 +98,24 @@ async function assertManaged(container) {
   return detail;
 }
 
+async function getTunnelStatus(botName) {
+  const tunnelName = `netguard-${botName}-cloudflared`;
+  try {
+    const detail = await docker.getContainer(tunnelName).inspect();
+    return { exists: true, state: detail.State.Status, status: detail.State.Status };
+  } catch (err) {
+    if (err.statusCode === 404) return { exists: false };
+    throw err;
+  }
+}
+
 async function listBots() {
   const containers = await docker.listContainers({ all: true });
-  const bots = containers.filter(
-    (c) => (c.Labels && c.Labels['netguard.managed'] === 'true') || c.Image === config.botImage
-  );
+  const bots = containers.filter((c) => {
+    const managed = (c.Labels && c.Labels['netguard.managed'] === 'true') || c.Image === config.botImage;
+    const isTunnel = c.Labels && c.Labels['netguard.role'] === 'tunnel';
+    return managed && !isTunnel;
+  });
 
   return Promise.all(
     bots.map(async (c) => {
@@ -94,6 +127,14 @@ async function listBots() {
         logger.warn(`inspect failed for container ${c.Id}:`, err.message);
       }
 
+      const botName = deriveBotName(c.Labels, (c.Names && c.Names[0]) || c.Id);
+      let tunnel = { exists: false };
+      try {
+        tunnel = await getTunnelStatus(botName);
+      } catch (err) {
+        logger.warn(`tunnel status lookup failed for "${botName}":`, err.message);
+      }
+
       return {
         id: c.Id,
         name: stripLeadingSlash((c.Names && c.Names[0]) || c.Id),
@@ -102,6 +143,7 @@ async function listBots() {
         port: findHostPort(c.Ports),
         createdAt: new Date(c.Created * 1000).toISOString(),
         health,
+        tunnel,
       };
     })
   );
@@ -173,13 +215,16 @@ async function getBotHealth(containerId) {
   return { ok: false, reason: lastErr ? lastErr.message : 'unreachable' };
 }
 
-async function createBot({ name, port }) {
+async function createBot({ name, port, tunnelToken }) {
   if (!isValidBotName(name)) {
     throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
   }
   const portNum = Number(port);
   if (!isValidPort(portNum)) {
     throw validationError('Invalid port — must be an integer between 1024 and 65535');
+  }
+  if (tunnelToken !== undefined && tunnelToken !== '' && !isValidTunnelToken(tunnelToken)) {
+    throw validationError('Invalid tunnel token — must be longer than 20 characters with no whitespace');
   }
   if (!config.botsHostPath) {
     throw validationError('BOTS_HOST_PATH is not configured on the manager', 503);
@@ -213,6 +258,9 @@ async function createBot({ name, port }) {
   const envPath = path.join(botDir, '.env');
   if (!fs.existsSync(envPath)) {
     fs.writeFileSync(envPath, ENV_TEMPLATE);
+  }
+  if (tunnelToken) {
+    setEnvValue(envPath, 'CLOUDFLARE_TUNNEL_TOKEN', tunnelToken);
   }
 
   const hostBotDir = `${config.botsHostPath}/${name}`;
@@ -254,25 +302,36 @@ async function createBot({ name, port }) {
     throw err;
   }
 
+  if (tunnelToken) {
+    try {
+      await createTunnel(name, tunnelToken);
+    } catch (err) {
+      logger.warn(`Bot "${name}" created but tunnel setup failed:`, err.message);
+    }
+  }
+
   return { id: container.id, name: containerName, port: portNum };
 }
 
 async function startBot(id) {
   const container = docker.getContainer(id);
-  await assertManaged(container);
+  const detail = await assertManaged(container);
   await container.start();
+  await toggleTunnel(detail, 'start');
 }
 
 async function stopBot(id) {
   const container = docker.getContainer(id);
-  await assertManaged(container);
+  const detail = await assertManaged(container);
   await container.stop();
+  await toggleTunnel(detail, 'stop');
 }
 
 async function restartBot(id) {
   const container = docker.getContainer(id);
-  await assertManaged(container);
+  const detail = await assertManaged(container);
   await container.restart();
+  await toggleTunnel(detail, 'restart');
 }
 
 async function removeBot(id, { deleteFiles = false } = {}) {
@@ -280,6 +339,18 @@ async function removeBot(id, { deleteFiles = false } = {}) {
   const detail = await assertManaged(container);
   const labels = (detail.Config && detail.Config.Labels) || {};
   const botName = labels['netguard.botname'] || stripLeadingSlash(detail.Name).replace(/^netguard-/, '');
+
+  const tunnelContainer = docker.getContainer(`netguard-${botName}-cloudflared`);
+  try {
+    await tunnelContainer.stop();
+  } catch (err) {
+    if (err.statusCode !== 304 && err.statusCode !== 404) throw err;
+  }
+  try {
+    await tunnelContainer.remove();
+  } catch (err) {
+    if (err.statusCode !== 404) throw err;
+  }
 
   try {
     await container.stop();
@@ -299,9 +370,9 @@ async function removeBot(id, { deleteFiles = false } = {}) {
   }
 }
 
-async function pullLatestImage() {
+function pullImage(image) {
   return new Promise((resolve, reject) => {
-    docker.pull(config.botImage, (err, stream) => {
+    docker.pull(image, (err, stream) => {
       if (err) return reject(err);
       docker.modem.followProgress(stream, (err2, output) => {
         if (err2) return reject(err2);
@@ -309,6 +380,108 @@ async function pullLatestImage() {
       });
     });
   });
+}
+
+async function ensureImage(image) {
+  try {
+    await docker.getImage(image).inspect();
+  } catch (err) {
+    await pullImage(image);
+  }
+}
+
+async function pullLatestImage() {
+  return pullImage(config.botImage);
+}
+
+async function createTunnel(botName, token) {
+  await ensureImage(CLOUDFLARED_IMAGE);
+  const containerName = `netguard-${botName}-cloudflared`;
+  const container = await docker.createContainer({
+    Image: CLOUDFLARED_IMAGE,
+    name: containerName,
+    Labels: {
+      'netguard.managed': 'true',
+      'netguard.botname': botName,
+      'netguard.role': 'tunnel',
+    },
+    Cmd: ['tunnel', '--no-autoupdate', 'run', '--token', token],
+    HostConfig: {
+      RestartPolicy: { Name: 'always' },
+    },
+    NetworkingConfig: {
+      EndpointsConfig: { [config.botNetwork]: {} },
+    },
+  });
+  await container.start();
+  return { id: container.id, name: containerName };
+}
+
+async function toggleTunnel(botDetail, action) {
+  const botName = deriveBotName((botDetail.Config && botDetail.Config.Labels) || {}, botDetail.Name);
+  const tunnelContainer = docker.getContainer(`netguard-${botName}-cloudflared`);
+  try {
+    await tunnelContainer[action]();
+  } catch (err) {
+    if (err.statusCode === 404 || err.statusCode === 304) return;
+    logger.warn(`Failed to ${action} tunnel for "${botName}":`, err.message);
+  }
+}
+
+async function attachTunnel(botName, token) {
+  if (!isValidBotName(botName)) {
+    throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
+  }
+  if (!isValidTunnelToken(token)) {
+    throw validationError('Invalid tunnel token — must be longer than 20 characters with no whitespace');
+  }
+
+  let botDetail;
+  try {
+    botDetail = await docker.getContainer(`netguard-${botName}`).inspect();
+  } catch (err) {
+    if (err.statusCode === 404) throw validationError(`Bot "${botName}" not found`, 404);
+    throw err;
+  }
+
+  const existingTunnel = await getTunnelStatus(botName);
+  if (existingTunnel.exists) {
+    throw validationError(`Tunnel for "${botName}" already exists`, 409);
+  }
+
+  const envPath = path.join(config.botsRoot, botName, '.env');
+  setEnvValue(envPath, 'CLOUDFLARE_TUNNEL_TOKEN', token);
+
+  await createTunnel(botName, token);
+
+  try {
+    await docker.getContainer(botDetail.Id).restart();
+  } catch (err) {
+    logger.warn(`Failed to restart bot "${botName}" after attaching tunnel:`, err.message);
+  }
+}
+
+async function detachTunnel(botName) {
+  if (!isValidBotName(botName)) {
+    throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
+  }
+
+  const tunnelContainer = docker.getContainer(`netguard-${botName}-cloudflared`);
+  try {
+    await tunnelContainer.stop();
+  } catch (err) {
+    if (err.statusCode !== 304 && err.statusCode !== 404) throw err;
+  }
+  try {
+    await tunnelContainer.remove();
+  } catch (err) {
+    if (err.statusCode !== 404) throw err;
+  }
+
+  const envPath = path.join(config.botsRoot, botName, '.env');
+  if (fs.existsSync(envPath)) {
+    setEnvValue(envPath, 'CLOUDFLARE_TUNNEL_TOKEN', '');
+  }
 }
 
 module.exports = {
@@ -321,4 +494,9 @@ module.exports = {
   restartBot,
   removeBot,
   pullLatestImage,
+  createTunnel,
+  getTunnelStatus,
+  attachTunnel,
+  detachTunnel,
+  isValidBotName,
 };

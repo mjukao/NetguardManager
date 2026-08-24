@@ -47,8 +47,8 @@ router.get('/bots/:id/health', async (req, res) => {
 
 router.post('/bots', async (req, res) => {
   try {
-    const { name, port } = req.body || {};
-    const bot = await dockerService.createBot({ name, port });
+    const { name, port, tunnelToken } = req.body || {};
+    const bot = await dockerService.createBot({ name, port, tunnelToken });
     res.status(201).json(bot);
   } catch (err) {
     handleError(res, err, 'Failed to create bot');
@@ -98,6 +98,46 @@ router.post('/image/pull', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     handleError(res, err, 'Failed to pull latest image');
+  }
+});
+
+function requireValidBotName(req, res) {
+  if (!dockerService.isValidBotName(req.params.name)) {
+    res.status(400).json({ error: 'Invalid bot name' });
+    return false;
+  }
+  return true;
+}
+
+router.post('/bots/:name/tunnel', async (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    const { token } = req.body || {};
+    await dockerService.attachTunnel(req.params.name, token);
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to attach tunnel for ${req.params.name}`);
+  }
+});
+
+router.delete('/bots/:name/tunnel', async (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    await dockerService.detachTunnel(req.params.name);
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to detach tunnel for ${req.params.name}`);
+  }
+});
+
+router.get('/bots/:name/tunnel/logs', async (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    const lines = parseInt(req.query.lines, 10) || 50;
+    const logs = await dockerService.getBotLogs(`netguard-${req.params.name}-cloudflared`, lines);
+    res.json(logs);
+  } catch (err) {
+    handleError(res, err, `Failed to get tunnel logs for ${req.params.name}`);
   }
 });
 

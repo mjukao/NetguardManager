@@ -79,6 +79,8 @@ tbody tr:hover { background: var(--gray-50); }
 .btn-remove:hover:not(:disabled) { background: #fde2e2; }
 .btn-log { background: var(--gray-100); color: var(--gray-800); }
 .btn-log:hover:not(:disabled) { background: var(--gray-200); }
+.btn-tunnel-add { background: var(--teal-bg); color: var(--teal-d); }
+.btn-tunnel-add:hover:not(:disabled) { background: #d0f5ec; }
 
 .empty-state { padding: 60px 24px; text-align: center; color: var(--gray-600); }
 
@@ -127,6 +129,21 @@ tbody tr:hover { background: var(--gray-50); }
 
 .checkbox-row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--gray-800); }
 .checkbox-row input { width: 16px; height: 16px; accent-color: var(--red); }
+
+/* ── Guide accordion ── */
+details.guide-accordion { margin-top: 8px; font-size: 12.5px; }
+details.guide-accordion summary {
+  cursor: pointer; color: var(--teal); font-weight: 600; font-size: 12.5px;
+  list-style: none; display: inline-flex; align-items: center; gap: 4px;
+}
+details.guide-accordion summary::-webkit-details-marker { display: none; }
+details.guide-accordion summary::before { content: '▸'; font-size: 11px; transition: transform .15s; }
+details.guide-accordion[open] summary::before { transform: rotate(90deg); }
+details.guide-accordion summary:hover { color: var(--teal-d); }
+details.guide-accordion ol { padding-left: 1.2rem; margin-top: 8px; color: var(--gray-600); line-height: 1.8; }
+details.guide-accordion a { color: var(--teal); text-decoration: underline; }
+details.guide-accordion a:hover { color: var(--teal-d); }
+details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
 
 .form-error {
   display: none; background: var(--red-bg); color: var(--red-d); font-size: 13px;
@@ -180,6 +197,7 @@ tbody tr:hover { background: var(--gray-50); }
           <th>Port</th>
           <th>สถานะ</th>
           <th>Monitors</th>
+          <th>Tunnel</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -220,11 +238,59 @@ tbody tr:hover { background: var(--gray-50); }
           <input type="number" id="newBotPort" min="1024" max="65535">
           <div class="field-hint">แนะนำ port ว่างถัดไปให้อัตโนมัติ (แก้ไขได้)</div>
         </div>
+        <div class="field">
+          <label for="newBotToken">Cloudflare Tunnel Token <span style="font-weight:400;color:var(--gray-400);font-size:11px;">(optional)</span></label>
+          <input type="text" id="newBotToken" autocomplete="off" placeholder="เว้นว่างได้ ถ้ายังไม่มี tunnel">
+          <div class="field-hint">เว้นว่างได้ ถ้ายังไม่มี tunnel — เพิ่มทีหลังได้</div>
+          <details class="guide-accordion">
+            <summary>วิธีหา Token</summary>
+            <ol>
+              <li>เปิด <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a></li>
+              <li>ไปที่ Zero Trust → Networks → Tunnels</li>
+              <li>กด Create a tunnel → เลือก Cloudflared</li>
+              <li>ตั้งชื่อ → Save</li>
+              <li>เลือก Docker → copy token จากคำสั่งที่แสดง (ส่วนที่ต่อจาก <code>--token</code>)</li>
+              <li>ตั้ง Public Hostname ชี้ไปที่ <code>http://netguard-&lt;ชื่อ bot&gt;:3000</code></li>
+            </ol>
+          </details>
+        </div>
       </form>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="createCancelBtn">ยกเลิก</button>
       <button class="btn btn-teal" id="createSubmitBtn">สร้าง</button>
+    </div>
+  </div>
+</div>
+
+<!-- Attach tunnel modal -->
+<div class="modal-overlay" id="attachTunnelModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="attachTunnelTitle">เพิ่ม Tunnel</h3>
+      <button class="modal-close" id="attachTunnelModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-error" id="attachTunnelError"></div>
+      <div class="field">
+        <label for="attachTunnelToken">Cloudflare Tunnel Token</label>
+        <input type="text" id="attachTunnelToken" autocomplete="off">
+        <details class="guide-accordion">
+          <summary>วิธีหา Token</summary>
+          <ol>
+            <li>เปิด <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a></li>
+            <li>ไปที่ Zero Trust → Networks → Tunnels</li>
+            <li>กด Create a tunnel → เลือก Cloudflared</li>
+            <li>ตั้งชื่อ → Save</li>
+            <li>เลือก Docker → copy token จากคำสั่งที่แสดง (ส่วนที่ต่อจาก <code>--token</code>)</li>
+            <li>ตั้ง Public Hostname ชี้ไปที่ <code>http://netguard-&lt;ชื่อ bot&gt;:3000</code></li>
+          </ol>
+        </details>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="attachTunnelCancelBtn">ยกเลิก</button>
+      <button class="btn btn-teal" id="attachTunnelSubmitBtn">เพิ่ม Tunnel</button>
     </div>
   </div>
 </div>
@@ -271,10 +337,19 @@ const removeConfirmText = document.getElementById('removeConfirmText');
 const removeDeleteFiles = document.getElementById('removeDeleteFiles');
 const removeConfirmBtn = document.getElementById('removeConfirmBtn');
 
+const attachTunnelModal = document.getElementById('attachTunnelModal');
+const attachTunnelTitle = document.getElementById('attachTunnelTitle');
+const attachTunnelError = document.getElementById('attachTunnelError');
+const attachTunnelToken = document.getElementById('attachTunnelToken');
+const attachTunnelSubmitBtn = document.getElementById('attachTunnelSubmitBtn');
+
+const newBotToken = document.getElementById('newBotToken');
+
 const toastContainer = document.getElementById('toastContainer');
 
 let botsCache = [];
 let removeTarget = null;
+let attachTunnelTarget = null;
 let refreshTimer = null;
 
 function showToast(message, type) {
@@ -295,6 +370,12 @@ function statusLabel(state) {
   if (state === 'running') return 'Running';
   if (state === 'exited') return 'Stopped';
   return state || 'Unknown';
+}
+
+function tunnelInfo(tunnel) {
+  if (!tunnel || !tunnel.exists) return { dot: 'other', label: 'ไม่มี' };
+  if (tunnel.state === 'running') return { dot: 'running', label: 'เชื่อมต่อ' };
+  return { dot: 'stopped', label: 'หยุด' };
 }
 
 function escapeHtml(str) {
@@ -339,9 +420,12 @@ async function loadBots() {
 
   tbody.innerHTML = bots.map((bot) => {
     const running = bot.state === 'running';
+    const name = botDisplayName(bot);
+    const tInfo = tunnelInfo(bot.tunnel);
+    const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
     return `
     <tr data-id="${escapeHtml(bot.id)}">
-      <td class="bot-name">${escapeHtml(botDisplayName(bot))}</td>
+      <td class="bot-name">${escapeHtml(name)}</td>
       <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
       <td>
         <span class="status">
@@ -351,12 +435,21 @@ async function loadBots() {
       </td>
       <td class="monitors-cell"><span class="monitors-count na">-</span></td>
       <td>
+        <span class="status">
+          <span class="status-dot ${tInfo.dot}"></span>
+          ${tInfo.label}
+        </span>
+      </td>
+      <td>
         <div class="action-group">
           ${!running ? `<button class="btn-icon btn-start" data-action="start" data-id="${escapeHtml(bot.id)}">&#9654; Start</button>` : ''}
           ${running ? `<button class="btn-icon btn-stop" data-action="stop" data-id="${escapeHtml(bot.id)}">&#9208; Stop</button>` : ''}
           <button class="btn-icon btn-restart" data-action="restart" data-id="${escapeHtml(bot.id)}">&#8635; Restart</button>
-          <button class="btn-icon btn-log" data-action="log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(botDisplayName(bot))}">ดู Log</button>
-          <button class="btn-icon btn-remove" data-action="remove" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(botDisplayName(bot))}">&#128465; Remove</button>
+          <button class="btn-icon btn-log" data-action="log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}">ดู Log</button>
+          ${!hasTunnel ? `<button class="btn-icon btn-tunnel-add" data-action="tunnel-add" data-name="${escapeHtml(name)}">+ Tunnel</button>` : ''}
+          ${hasTunnel ? `<button class="btn-icon btn-log" data-action="tunnel-log" data-name="${escapeHtml(name)}">Tunnel Log</button>` : ''}
+          ${hasTunnel ? `<button class="btn-icon btn-remove" data-action="tunnel-remove" data-name="${escapeHtml(name)}">ลบ Tunnel</button>` : ''}
+          <button class="btn-icon btn-remove" data-action="remove" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}">&#128465; Remove</button>
         </div>
       </td>
     </tr>
@@ -389,9 +482,28 @@ function onActionClick(btn) {
   const id = btn.dataset.id;
   const name = btn.dataset.name;
 
-  if (action === 'log') return openLogModal(id, name);
+  if (action === 'log') return openLogModal(`Log — ${name}`, `/api/bots/${id}/logs`);
   if (action === 'remove') return openRemoveModal(id, name);
+  if (action === 'tunnel-add') return openAttachTunnelModal(name);
+  if (action === 'tunnel-log') return openLogModal(`Tunnel Log — ${name}`, `/api/bots/${name}/tunnel/logs`);
+  if (action === 'tunnel-remove') return runDetachTunnel(name, btn);
   return runBotAction(action, id, btn);
+}
+
+async function runDetachTunnel(name, btn) {
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'กำลังลบ...';
+  try {
+    await fetchJson(`/api/bots/${name}/tunnel`, { method: 'DELETE' });
+    showToast(`ลบ tunnel ของ "${name}" สำเร็จ`, 'success');
+  } catch (err) {
+    showToast(`ลบ tunnel ของ "${name}" ไม่สำเร็จ: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    loadBots();
+  }
 }
 
 async function runBotAction(action, id, btn) {
@@ -411,12 +523,12 @@ async function runBotAction(action, id, btn) {
   }
 }
 
-async function openLogModal(id, name) {
-  logModalTitle.textContent = `Log — ${name}`;
+async function openLogModal(title, url) {
+  logModalTitle.textContent = title;
   logModalBody.textContent = 'Loading...';
   logModal.classList.add('show');
   try {
-    const lines = await fetchJson(`/api/bots/${id}/logs`);
+    const lines = await fetchJson(url);
     logModalBody.textContent = lines.length ? lines.join('\n') : '(ไม่มี log)';
   } catch (err) {
     logModalBody.textContent = 'โหลด log ไม่สำเร็จ';
@@ -444,6 +556,8 @@ function openCreateModal() {
   newBotName.classList.remove('error');
   newBotPort.value = nextFreePort();
   newBotPort.classList.remove('error');
+  newBotToken.value = '';
+  newBotToken.classList.remove('error');
   createModal.classList.add('show');
   newBotName.focus();
 }
@@ -457,13 +571,19 @@ createModal.addEventListener('click', (e) => {
 
 const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
+function isValidTunnelToken(token) {
+  return token.length > 20 && !/\s/.test(token);
+}
+
 document.getElementById('createSubmitBtn').addEventListener('click', async () => {
   createError.classList.remove('show');
   newBotName.classList.remove('error');
   newBotPort.classList.remove('error');
+  newBotToken.classList.remove('error');
 
   const name = newBotName.value.trim();
   const port = parseInt(newBotPort.value, 10);
+  const tunnelToken = newBotToken.value.trim();
 
   if (!NAME_RE.test(name)) {
     createError.textContent = 'ชื่อ bot ไม่ถูกต้อง — ใช้ได้เฉพาะ a-z, 0-9, - (2-31 ตัวอักษร)';
@@ -477,6 +597,12 @@ document.getElementById('createSubmitBtn').addEventListener('click', async () =>
     newBotPort.classList.add('error');
     return;
   }
+  if (tunnelToken && !isValidTunnelToken(tunnelToken)) {
+    createError.textContent = 'Token ไม่ถูกต้อง — ต้องยาวกว่า 20 ตัวอักษร และห้ามมีช่องว่าง';
+    createError.classList.add('show');
+    newBotToken.classList.add('error');
+    return;
+  }
 
   createSubmitBtn.disabled = true;
   createSubmitBtn.textContent = 'กำลังสร้าง...';
@@ -484,7 +610,7 @@ document.getElementById('createSubmitBtn').addEventListener('click', async () =>
     await fetchJson('/api/bots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, port }),
+      body: JSON.stringify({ name, port, tunnelToken: tunnelToken || undefined }),
     });
     createModal.classList.remove('show');
     showToast(`สร้าง bot "${name}" สำเร็จ`, 'success');
@@ -498,10 +624,64 @@ document.getElementById('createSubmitBtn').addEventListener('click', async () =>
   }
 });
 
+// ── Attach tunnel modal ──
+function openAttachTunnelModal(name) {
+  attachTunnelTarget = name;
+  attachTunnelTitle.textContent = `เพิ่ม Tunnel — ${name}`;
+  attachTunnelError.classList.remove('show');
+  attachTunnelToken.value = '';
+  attachTunnelToken.classList.remove('error');
+  attachTunnelModal.classList.add('show');
+  attachTunnelToken.focus();
+}
+
+document.getElementById('attachTunnelModalClose').addEventListener('click', () => attachTunnelModal.classList.remove('show'));
+document.getElementById('attachTunnelCancelBtn').addEventListener('click', () => attachTunnelModal.classList.remove('show'));
+attachTunnelModal.addEventListener('click', (e) => {
+  if (e.target === attachTunnelModal) attachTunnelModal.classList.remove('show');
+});
+
+attachTunnelSubmitBtn.addEventListener('click', async () => {
+  if (!attachTunnelTarget) return;
+  attachTunnelError.classList.remove('show');
+  attachTunnelToken.classList.remove('error');
+
+  const token = attachTunnelToken.value.trim();
+  if (!isValidTunnelToken(token)) {
+    attachTunnelError.textContent = 'Token ไม่ถูกต้อง — ต้องยาวกว่า 20 ตัวอักษร และห้ามมีช่องว่าง';
+    attachTunnelError.classList.add('show');
+    attachTunnelToken.classList.add('error');
+    return;
+  }
+
+  attachTunnelSubmitBtn.disabled = true;
+  attachTunnelSubmitBtn.textContent = 'กำลังเพิ่ม...';
+  try {
+    await fetchJson(`/api/bots/${attachTunnelTarget}/tunnel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    attachTunnelModal.classList.remove('show');
+    showToast(`เพิ่ม tunnel ให้ "${attachTunnelTarget}" สำเร็จ`, 'success');
+    loadBots();
+  } catch (err) {
+    attachTunnelError.textContent = err.message;
+    attachTunnelError.classList.add('show');
+  } finally {
+    attachTunnelSubmitBtn.disabled = false;
+    attachTunnelSubmitBtn.textContent = 'เพิ่ม Tunnel';
+  }
+});
+
 // ── Remove confirm modal ──
 function openRemoveModal(id, name) {
   removeTarget = { id, name };
-  removeConfirmText.textContent = `ยืนยันการลบ bot "${name}" ? การลบ container ไม่สามารถย้อนกลับได้`;
+  const bot = botsCache.find((b) => b.id === id);
+  const hasTunnel = !!(bot && bot.tunnel && bot.tunnel.exists);
+  removeConfirmText.textContent = hasTunnel
+    ? `ยืนยันการลบ bot "${name}" ? จะลบ Cloudflare Tunnel ของบอทนี้ไปด้วย การลบ container ไม่สามารถย้อนกลับได้`
+    : `ยืนยันการลบ bot "${name}" ? การลบ container ไม่สามารถย้อนกลับได้`;
   removeDeleteFiles.checked = false;
   removeModal.classList.add('show');
 }
