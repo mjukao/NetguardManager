@@ -67,6 +67,10 @@ docker compose ps
 docker compose logs manager --tail 30
 Dashboard: http://localhost:8080 (รหัส default: admin)
 
+สร้าง password hash จริง (แทน default admin):
+node scripts/gen-password.js "<รหัสผ่านที่ต้องการ>"
+→ copy hash ที่ได้ไปใส่ MANAGER_PASSWORD_HASH ใน .env แล้ว docker compose up -d --build ใหม่
+
 ## วิธีทำงานที่ต้องการ
 - ทำทีละเฟส ไม่ข้ามขั้น
 - เจอ error ให้หยุดรายงานทันที ไม่แก้เอง

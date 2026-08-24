@@ -93,6 +93,7 @@ module.exports = {
   networkGuard,
   requireAuth,
   verifyPassword,
+  hashPassword,
   createSession,
   destroySession,
   isValidSession,
