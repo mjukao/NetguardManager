@@ -7,13 +7,22 @@ const router = express.Router();
 
 router.use(guard.networkGuard, guard.requireAuth);
 
+function handleError(res, err, fallbackMsg) {
+  const status = err.statusCode || 500;
+  if (status >= 500) {
+    logger.error(`${fallbackMsg}:`, err.message);
+  } else {
+    logger.warn(`${fallbackMsg}:`, err.message);
+  }
+  res.status(status).json({ error: err.message || fallbackMsg });
+}
+
 router.get('/bots', async (req, res) => {
   try {
     const bots = await dockerService.listBots();
     res.json(bots);
   } catch (err) {
-    logger.error('Failed to list bots:', err.message);
-    res.status(500).json({ error: 'Failed to list bots' });
+    handleError(res, err, 'Failed to list bots');
   }
 });
 
@@ -23,23 +32,72 @@ router.get('/bots/:id/logs', async (req, res) => {
     const logs = await dockerService.getBotLogs(req.params.id, lines);
     res.json(logs);
   } catch (err) {
-    logger.error(`Failed to get logs for ${req.params.id}:`, err.message);
-    res.status(500).json({ error: 'Failed to get logs' });
+    handleError(res, err, `Failed to get logs for ${req.params.id}`);
   }
 });
 
 router.get('/bots/:id/health', async (req, res) => {
   try {
-    const bots = await dockerService.listBots();
-    const bot = bots.find((b) => b.id === req.params.id);
-    if (!bot || !bot.port) {
-      return res.status(404).json({ error: 'Bot not found or has no exposed port' });
-    }
-    const health = await dockerService.getBotHealth(bot.port);
+    const health = await dockerService.getBotHealth(req.params.id);
     res.json(health);
   } catch (err) {
-    logger.error(`Failed to get health for ${req.params.id}:`, err.message);
-    res.status(500).json({ error: 'Failed to get health' });
+    handleError(res, err, `Failed to get health for ${req.params.id}`);
+  }
+});
+
+router.post('/bots', async (req, res) => {
+  try {
+    const { name, port } = req.body || {};
+    const bot = await dockerService.createBot({ name, port });
+    res.status(201).json(bot);
+  } catch (err) {
+    handleError(res, err, 'Failed to create bot');
+  }
+});
+
+router.post('/bots/:id/start', async (req, res) => {
+  try {
+    await dockerService.startBot(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to start ${req.params.id}`);
+  }
+});
+
+router.post('/bots/:id/stop', async (req, res) => {
+  try {
+    await dockerService.stopBot(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to stop ${req.params.id}`);
+  }
+});
+
+router.post('/bots/:id/restart', async (req, res) => {
+  try {
+    await dockerService.restartBot(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to restart ${req.params.id}`);
+  }
+});
+
+router.delete('/bots/:id', async (req, res) => {
+  try {
+    const deleteFiles = req.query.deleteFiles === 'true';
+    await dockerService.removeBot(req.params.id, { deleteFiles });
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, `Failed to remove ${req.params.id}`);
+  }
+});
+
+router.post('/image/pull', async (req, res) => {
+  try {
+    await dockerService.pullLatestImage();
+    res.json({ ok: true });
+  } catch (err) {
+    handleError(res, err, 'Failed to pull latest image');
   }
 });
 

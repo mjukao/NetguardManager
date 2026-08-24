@@ -6,11 +6,17 @@ services:
     ports:
       - "8080:8080"
     env_file: .env
+    environment:
+      - BOTS_ROOT=/bots
+      - BOTS_HOST_PATH=${BOTS_HOST_PATH}
+      - BOT_NETWORK=${BOT_NETWORK}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${BOTS_HOST_PATH}:/bots
     networks:
       - manager-net
 
 networks:
   manager-net:
+    name: netguard-net
     driver: bridge

@@ -11,7 +11,8 @@
   --teal: #00b894; --teal-d: #00997d; --teal-bg: #e6faf6;
   --white: #fff; --gray-50: #f9fafb; --gray-100: #f3f4f6;
   --gray-200: #e5e7eb; --gray-400: #9ca3af; --gray-600: #6b7280; --gray-800: #1f2937;
-  --red: #ef4444; --red-bg: #fef2f2; --green: #10b981;
+  --red: #ef4444; --red-d: #dc2626; --red-bg: #fef2f2; --green: #10b981;
+  --amber: #f59e0b; --amber-bg: #fffbeb;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 body { font-family: var(--font); background: var(--gray-100); color: var(--gray-800); }
@@ -24,14 +25,16 @@ header {
 }
 header h1 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 header h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); }
-.btn-ghost {
-  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
-  color: var(--white); padding: 7px 16px; border-radius: 6px; font-size: 13px;
-  cursor: pointer; transition: background .2s;
-}
-.btn-ghost:hover { background: rgba(255,255,255,.25); }
+header .actions { display: flex; align-items: center; gap: 10px; }
 
-.main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+.btn { border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s, opacity .2s; padding: 7px 16px; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-ghost { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: var(--white); }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,.25); }
+.btn-teal { background: var(--teal); color: var(--white); }
+.btn-teal:hover:not(:disabled) { background: var(--teal-d); }
+
+.main { max-width: 1150px; margin: 0 auto; padding: 28px 24px; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .toolbar h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
 .refresh-note { font-size: 12px; color: var(--gray-600); }
@@ -43,7 +46,7 @@ thead th {
   letter-spacing: .5px; color: var(--gray-600); padding: 12px 16px; background: var(--gray-50);
   border-bottom: 1px solid var(--gray-200);
 }
-tbody td { padding: 14px 16px; border-bottom: 1px solid var(--gray-200); font-size: 14px; }
+tbody td { padding: 14px 16px; border-bottom: 1px solid var(--gray-200); font-size: 14px; vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--gray-50); }
 
@@ -60,25 +63,36 @@ tbody tr:hover { background: var(--gray-50); }
 .monitors-count { font-weight: 600; }
 .monitors-count.na { color: var(--gray-400); font-weight: 400; }
 
-.btn-log {
-  background: var(--teal-bg); color: var(--teal-d); border: none; padding: 6px 14px;
-  border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer;
-  transition: background .2s;
+.action-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-icon {
+  border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: background .2s, opacity .2s; display: inline-flex; align-items: center; gap: 5px;
 }
-.btn-log:hover { background: #d0f5ec; }
+.btn-icon:disabled { opacity: .5; cursor: not-allowed; }
+.btn-start { background: var(--teal-bg); color: var(--teal-d); }
+.btn-start:hover:not(:disabled) { background: #d0f5ec; }
+.btn-stop { background: var(--amber-bg); color: #b45309; }
+.btn-stop:hover:not(:disabled) { background: #fef3c7; }
+.btn-restart { background: var(--gray-100); color: var(--gray-800); }
+.btn-restart:hover:not(:disabled) { background: var(--gray-200); }
+.btn-remove { background: var(--red-bg); color: var(--red-d); }
+.btn-remove:hover:not(:disabled) { background: #fde2e2; }
+.btn-log { background: var(--gray-100); color: var(--gray-800); }
+.btn-log:hover:not(:disabled) { background: var(--gray-200); }
 
 .empty-state { padding: 60px 24px; text-align: center; color: var(--gray-600); }
 
-/* ── Log modal ── */
+/* ── Modal (shared) ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
-  align-items: center; justify-content: center; z-index: 200;
+  align-items: center; justify-content: center; z-index: 200; padding: 20px;
 }
 .modal-overlay.show { display: flex; }
 .modal {
-  background: var(--white); border-radius: 12px; width: 90%; max-width: 720px;
-  max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.3);
+  background: var(--white); border-radius: 12px; width: 100%; max-width: 440px;
+  max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.3);
 }
+.modal.modal-wide { max-width: 720px; }
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px; border-bottom: 1px solid var(--gray-200);
@@ -89,17 +103,67 @@ tbody tr:hover { background: var(--gray-50); }
   cursor: pointer; line-height: 1; padding: 4px;
 }
 .modal-close:hover { color: var(--gray-800); }
-.modal-body {
-  padding: 16px 20px; overflow-y: auto; background: var(--navy-d);
-  color: #d1e7e0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px;
+.modal-body { padding: 20px; overflow-y: auto; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; }
+
+.modal-body.log-body {
+  padding: 16px 20px; background: var(--navy-d); color: #d1e7e0;
+  font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px;
   line-height: 1.6; white-space: pre-wrap; word-break: break-all;
 }
+
+/* ── Form ── */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 5px; }
+.field-hint { font-size: 12px; color: var(--gray-600); margin-top: 5px; }
+.field input[type=text], .field input[type=number] {
+  width: 100%; padding: 10px 13px; border: 1.5px solid var(--gray-200);
+  border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,184,148,.15); }
+.field input.error { border-color: var(--red); }
+
+.checkbox-row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--gray-800); }
+.checkbox-row input { width: 16px; height: 16px; accent-color: var(--red); }
+
+.form-error {
+  display: none; background: var(--red-bg); color: var(--red-d); font-size: 13px;
+  padding: 9px 12px; border-radius: 6px; margin-bottom: 14px;
+}
+.form-error.show { display: block; }
+.confirm-text { font-size: 14px; color: var(--gray-800); margin-bottom: 14px; line-height: 1.6; }
+
+.btn-secondary { background: var(--gray-100); color: var(--gray-800); }
+.btn-secondary:hover:not(:disabled) { background: var(--gray-200); }
+.btn-danger { background: var(--red); color: var(--white); }
+.btn-danger:hover:not(:disabled) { background: var(--red-d); }
+
+/* ── Toasts ── */
+.toast-container {
+  position: fixed; bottom: 20px; right: 20px; z-index: 300;
+  display: flex; flex-direction: column; gap: 10px; max-width: 340px;
+}
+.toast {
+  background: var(--white); border-radius: 8px; padding: 12px 16px; font-size: 13.5px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); border-left: 4px solid var(--gray-400);
+  animation: toast-in .2s ease-out;
+}
+.toast.success { border-left-color: var(--teal); }
+.toast.error { border-left-color: var(--red); }
+.toast.info { border-left-color: var(--amber); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
 <header>
   <h1><span class="dot"></span>NetGuard Manager</h1>
-  <button class="btn-ghost" id="logoutBtn">ออกจากระบบ</button>
+  <div class="actions">
+    <button class="btn btn-ghost" id="pullImageBtn">อัปเดต Image</button>
+    <button class="btn btn-teal" id="openCreateBtn">+ สร้าง Bot ใหม่</button>
+    <button class="btn btn-ghost" id="logoutBtn">ออกจากระบบ</button>
+  </div>
 </header>
 
 <div class="main">
@@ -125,22 +189,101 @@ tbody tr:hover { background: var(--gray-50); }
   </div>
 </div>
 
+<!-- Log modal -->
 <div class="modal-overlay" id="logModal">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-header">
       <h3 id="logModalTitle">Log</h3>
       <button class="modal-close" id="logModalClose">&times;</button>
     </div>
-    <div class="modal-body" id="logModalBody">Loading...</div>
+    <div class="modal-body log-body" id="logModalBody">Loading...</div>
   </div>
 </div>
+
+<!-- Create bot modal -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>สร้าง Bot ใหม่</h3>
+      <button class="modal-close" id="createModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-error" id="createError"></div>
+      <form id="createForm">
+        <div class="field">
+          <label for="newBotName">ชื่อ bot</label>
+          <input type="text" id="newBotName" autocomplete="off" placeholder="เช่น netguard-office">
+          <div class="field-hint">ใช้ได้เฉพาะ a-z, 0-9, - เท่านั้น (2-31 ตัวอักษร)</div>
+        </div>
+        <div class="field">
+          <label for="newBotPort">Port</label>
+          <input type="number" id="newBotPort" min="1024" max="65535">
+          <div class="field-hint">แนะนำ port ว่างถัดไปให้อัตโนมัติ (แก้ไขได้)</div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="createCancelBtn">ยกเลิก</button>
+      <button class="btn btn-teal" id="createSubmitBtn">สร้าง</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove confirm modal -->
+<div class="modal-overlay" id="removeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>ลบ Bot</h3>
+      <button class="modal-close" id="removeModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text" id="removeConfirmText"></div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="removeDeleteFiles">
+        ลบข้อมูลและ .env ด้วย
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="removeCancelBtn">ยกเลิก</button>
+      <button class="btn btn-danger" id="removeConfirmBtn">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
 const tbody = document.getElementById('botTableBody');
 const emptyState = document.getElementById('emptyState');
+
 const logModal = document.getElementById('logModal');
 const logModalBody = document.getElementById('logModalBody');
 const logModalTitle = document.getElementById('logModalTitle');
+
+const createModal = document.getElementById('createModal');
+const createError = document.getElementById('createError');
+const newBotName = document.getElementById('newBotName');
+const newBotPort = document.getElementById('newBotPort');
+const createSubmitBtn = document.getElementById('createSubmitBtn');
+
+const removeModal = document.getElementById('removeModal');
+const removeConfirmText = document.getElementById('removeConfirmText');
+const removeDeleteFiles = document.getElementById('removeDeleteFiles');
+const removeConfirmBtn = document.getElementById('removeConfirmBtn');
+
+const toastContainer = document.getElementById('toastContainer');
+
+let botsCache = [];
+let removeTarget = null;
+let refreshTimer = null;
+
+function showToast(message, type) {
+  const el = document.createElement('div');
+  el.className = `toast ${type || 'info'}`;
+  el.textContent = message;
+  toastContainer.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
 
 function statusClass(state) {
   if (state === 'running') return 'running';
@@ -166,8 +309,16 @@ async function fetchJson(url, opts) {
     window.location.href = '/login.html';
     throw new Error('unauthorized');
   }
-  if (!res.ok) throw new Error(`request failed: ${res.status}`);
-  return res.json();
+  let data = null;
+  try { data = await res.json(); } catch (err) { /* no body */ }
+  if (!res.ok) {
+    throw new Error((data && data.error) || `request failed: ${res.status}`);
+  }
+  return data;
+}
+
+function botDisplayName(bot) {
+  return bot.name.replace(/^netguard-/, '');
 }
 
 async function loadBots() {
@@ -177,6 +328,7 @@ async function loadBots() {
   } catch (err) {
     return;
   }
+  botsCache = bots;
 
   if (!bots.length) {
     tbody.innerHTML = '';
@@ -185,9 +337,11 @@ async function loadBots() {
   }
   emptyState.style.display = 'none';
 
-  tbody.innerHTML = bots.map((bot) => `
+  tbody.innerHTML = bots.map((bot) => {
+    const running = bot.state === 'running';
+    return `
     <tr data-id="${escapeHtml(bot.id)}">
-      <td class="bot-name">${escapeHtml(bot.name)}</td>
+      <td class="bot-name">${escapeHtml(botDisplayName(bot))}</td>
       <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
       <td>
         <span class="status">
@@ -196,15 +350,24 @@ async function loadBots() {
         </span>
       </td>
       <td class="monitors-cell"><span class="monitors-count na">-</span></td>
-      <td><button class="btn-log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(bot.name)}">ดู Log</button></td>
+      <td>
+        <div class="action-group">
+          ${!running ? `<button class="btn-icon btn-start" data-action="start" data-id="${escapeHtml(bot.id)}">&#9654; Start</button>` : ''}
+          ${running ? `<button class="btn-icon btn-stop" data-action="stop" data-id="${escapeHtml(bot.id)}">&#9208; Stop</button>` : ''}
+          <button class="btn-icon btn-restart" data-action="restart" data-id="${escapeHtml(bot.id)}">&#8635; Restart</button>
+          <button class="btn-icon btn-log" data-action="log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(botDisplayName(bot))}">ดู Log</button>
+          <button class="btn-icon btn-remove" data-action="remove" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(botDisplayName(bot))}">&#128465; Remove</button>
+        </div>
+      </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
-  document.querySelectorAll('.btn-log').forEach((btn) => {
-    btn.addEventListener('click', () => openLogModal(btn.dataset.id, btn.dataset.name));
+  document.querySelectorAll('[data-action]').forEach((btn) => {
+    btn.addEventListener('click', () => onActionClick(btn));
   });
 
-  bots.filter((b) => b.state === 'running' && b.port).forEach(loadBotHealth);
+  bots.filter((b) => b.state === 'running').forEach(loadBotHealth);
 }
 
 async function loadBotHealth(bot) {
@@ -212,11 +375,39 @@ async function loadBotHealth(bot) {
   if (!row) return;
   try {
     const health = await fetchJson(`/api/bots/${bot.id}/health`);
+    const count = Array.isArray(health.monitorsLoaded) ? health.monitorsLoaded.length : (health.monitorsLoaded || 0);
     row.innerHTML = health.ok
-      ? `<span class="monitors-count">${health.monitorsLoaded}</span>`
-      : `<span class="monitors-count na">offline</span>`;
+      ? `<span class="monitors-count">${count}</span>`
+      : `<span class="monitors-count na">${escapeHtml(health.reason || 'offline')}</span>`;
   } catch (err) {
     row.innerHTML = `<span class="monitors-count na">-</span>`;
+  }
+}
+
+function onActionClick(btn) {
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  const name = btn.dataset.name;
+
+  if (action === 'log') return openLogModal(id, name);
+  if (action === 'remove') return openRemoveModal(id, name);
+  return runBotAction(action, id, btn);
+}
+
+async function runBotAction(action, id, btn) {
+  const labels = { start: 'เริ่ม', stop: 'หยุด', restart: 'รีสตาร์ท' };
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'กำลังทำงาน...';
+  try {
+    await fetchJson(`/api/bots/${id}/${action}`, { method: 'POST' });
+    showToast(`${labels[action] || action} bot สำเร็จ`, 'success');
+  } catch (err) {
+    showToast(`${labels[action] || action} bot ไม่สำเร็จ: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    loadBots();
   }
 }
 
@@ -239,13 +430,131 @@ logModal.addEventListener('click', (e) => {
   if (e.target === logModal) logModal.classList.remove('show');
 });
 
+// ── Create bot modal ──
+function nextFreePort() {
+  const used = new Set(botsCache.map((b) => b.port).filter(Boolean));
+  let p = 3100;
+  while (used.has(p)) p++;
+  return p;
+}
+
+function openCreateModal() {
+  createError.classList.remove('show');
+  newBotName.value = '';
+  newBotName.classList.remove('error');
+  newBotPort.value = nextFreePort();
+  newBotPort.classList.remove('error');
+  createModal.classList.add('show');
+  newBotName.focus();
+}
+
+document.getElementById('openCreateBtn').addEventListener('click', openCreateModal);
+document.getElementById('createModalClose').addEventListener('click', () => createModal.classList.remove('show'));
+document.getElementById('createCancelBtn').addEventListener('click', () => createModal.classList.remove('show'));
+createModal.addEventListener('click', (e) => {
+  if (e.target === createModal) createModal.classList.remove('show');
+});
+
+const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+
+document.getElementById('createSubmitBtn').addEventListener('click', async () => {
+  createError.classList.remove('show');
+  newBotName.classList.remove('error');
+  newBotPort.classList.remove('error');
+
+  const name = newBotName.value.trim();
+  const port = parseInt(newBotPort.value, 10);
+
+  if (!NAME_RE.test(name)) {
+    createError.textContent = 'ชื่อ bot ไม่ถูกต้อง — ใช้ได้เฉพาะ a-z, 0-9, - (2-31 ตัวอักษร)';
+    createError.classList.add('show');
+    newBotName.classList.add('error');
+    return;
+  }
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    createError.textContent = 'Port ไม่ถูกต้อง — ต้องเป็นตัวเลข 1024-65535';
+    createError.classList.add('show');
+    newBotPort.classList.add('error');
+    return;
+  }
+
+  createSubmitBtn.disabled = true;
+  createSubmitBtn.textContent = 'กำลังสร้าง...';
+  try {
+    await fetchJson('/api/bots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, port }),
+    });
+    createModal.classList.remove('show');
+    showToast(`สร้าง bot "${name}" สำเร็จ`, 'success');
+    loadBots();
+  } catch (err) {
+    createError.textContent = err.message;
+    createError.classList.add('show');
+  } finally {
+    createSubmitBtn.disabled = false;
+    createSubmitBtn.textContent = 'สร้าง';
+  }
+});
+
+// ── Remove confirm modal ──
+function openRemoveModal(id, name) {
+  removeTarget = { id, name };
+  removeConfirmText.textContent = `ยืนยันการลบ bot "${name}" ? การลบ container ไม่สามารถย้อนกลับได้`;
+  removeDeleteFiles.checked = false;
+  removeModal.classList.add('show');
+}
+
+document.getElementById('removeModalClose').addEventListener('click', () => removeModal.classList.remove('show'));
+document.getElementById('removeCancelBtn').addEventListener('click', () => removeModal.classList.remove('show'));
+removeModal.addEventListener('click', (e) => {
+  if (e.target === removeModal) removeModal.classList.remove('show');
+});
+
+removeConfirmBtn.addEventListener('click', async () => {
+  if (!removeTarget) return;
+  const { id, name } = removeTarget;
+  const deleteFiles = removeDeleteFiles.checked;
+
+  removeConfirmBtn.disabled = true;
+  removeConfirmBtn.textContent = 'กำลังลบ...';
+  try {
+    await fetchJson(`/api/bots/${id}?deleteFiles=${deleteFiles}`, { method: 'DELETE' });
+    removeModal.classList.remove('show');
+    showToast(`ลบ bot "${name}" สำเร็จ${deleteFiles ? ' (รวมไฟล์)' : ''}`, 'success');
+    loadBots();
+  } catch (err) {
+    showToast(`ลบ bot "${name}" ไม่สำเร็จ: ${err.message}`, 'error');
+  } finally {
+    removeConfirmBtn.disabled = false;
+    removeConfirmBtn.textContent = 'ลบ';
+  }
+});
+
+// ── Update image ──
+document.getElementById('pullImageBtn').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'กำลังอัปเดต...';
+  try {
+    await fetchJson('/api/image/pull', { method: 'POST' });
+    showToast('อัปเดต image ล่าสุดสำเร็จ — กรุณา Restart bot ทีละตัวเพื่อใช้เวอร์ชันใหม่', 'success');
+  } catch (err) {
+    showToast(`อัปเดต image ไม่สำเร็จ: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'อัปเดต Image';
+  }
+});
+
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
   window.location.href = '/login.html';
 });
 
 loadBots();
-setInterval(loadBots, 10000);
+refreshTimer = setInterval(loadBots, 10000);
 </script>
 </body>
 </html>
