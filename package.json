@@ -1,0 +1,16 @@
+{
+  "name": "netguard-manager",
+  "version": "1.0.0",
+  "description": "Dashboard for managing multiple NetGuard AI bot containers",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "dockerode": "^4.0.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0"
+  }
+}

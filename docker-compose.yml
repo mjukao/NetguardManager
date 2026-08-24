@@ -1,0 +1,16 @@
+services:
+  manager:
+    build: .
+    container_name: netguard-manager
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - manager-net
+
+networks:
+  manager-net:
+    driver: bridge

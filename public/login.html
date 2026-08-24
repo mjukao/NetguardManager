@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetGuard Manager — Login</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1e2a3a; --navy-d: #141d29; --navy-l: #263447;
+  --teal: #00b894; --teal-d: #00997d;
+  --white: #fff; --gray-200: #e5e7eb; --gray-400: #9ca3af; --gray-600: #6b7280;
+  --red: #ef4444; --red-bg: #fef2f2;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+body {
+  font-family: var(--font);
+  background: linear-gradient(135deg, var(--navy-d), var(--navy));
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.card {
+  background: var(--white); border-radius: 12px; padding: 36px 32px;
+  width: 100%; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+.logo { text-align: center; margin-bottom: 24px; }
+.logo-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: 8px; }
+.logo h1 { font-size: 18px; font-weight: 700; color: var(--navy); display: inline-block; vertical-align: middle; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 6px; }
+.field input {
+  width: 100%; padding: 10px 13px; border: 1.5px solid var(--gray-200);
+  border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,184,148,.15); }
+.btn-primary {
+  width: 100%; padding: 11px; border: none; border-radius: 8px;
+  background: var(--teal); color: var(--white); font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: background .2s; margin-top: 6px;
+}
+.btn-primary:hover { background: var(--teal-d); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.error-msg {
+  display: none; background: var(--red-bg); color: var(--red); font-size: 13px;
+  padding: 9px 12px; border-radius: 6px; margin-bottom: 16px;
+}
+.error-msg.show { display: block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <span class="logo-dot"></span><h1>NetGuard Manager</h1>
+  </div>
+  <div class="error-msg" id="errorMsg">รหัสผ่านไม่ถูกต้อง</div>
+  <form id="loginForm">
+    <div class="field">
+      <label for="password">รหัสผ่าน</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" autofocus required>
+    </div>
+    <button type="submit" class="btn-primary" id="submitBtn">เข้าสู่ระบบ</button>
+  </form>
+</div>
+<script>
+const form = document.getElementById('loginForm');
+const errorMsg = document.getElementById('errorMsg');
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorMsg.classList.remove('show');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'กำลังเข้าสู่ระบบ...';
+
+  try {
+    const password = document.getElementById('password').value;
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (res.ok) {
+      window.location.href = '/';
+    } else {
+      errorMsg.classList.add('show');
+    }
+  } catch (err) {
+    errorMsg.textContent = 'เชื่อมต่อไม่สำเร็จ';
+    errorMsg.classList.add('show');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'เข้าสู่ระบบ';
+  }
+});
+</script>
+</body>
+</html>

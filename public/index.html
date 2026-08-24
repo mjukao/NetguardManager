@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetGuard Manager</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1e2a3a; --navy-d: #141d29; --navy-l: #263447;
+  --teal: #00b894; --teal-d: #00997d; --teal-bg: #e6faf6;
+  --white: #fff; --gray-50: #f9fafb; --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb; --gray-400: #9ca3af; --gray-600: #6b7280; --gray-800: #1f2937;
+  --red: #ef4444; --red-bg: #fef2f2; --green: #10b981;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+body { font-family: var(--font); background: var(--gray-100); color: var(--gray-800); }
+
+header {
+  background: linear-gradient(135deg, var(--navy-d), var(--navy));
+  color: var(--white); padding: 0 24px; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25); position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+header h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); }
+.btn-ghost {
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+  color: var(--white); padding: 7px 16px; border-radius: 6px; font-size: 13px;
+  cursor: pointer; transition: background .2s;
+}
+.btn-ghost:hover { background: rgba(255,255,255,.25); }
+
+.main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.toolbar h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
+.refresh-note { font-size: 12px; color: var(--gray-600); }
+
+.card { background: var(--white); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--gray-600); padding: 12px 16px; background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+tbody td { padding: 14px 16px; border-bottom: 1px solid var(--gray-200); font-size: 14px; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--gray-50); }
+
+.bot-name { font-weight: 600; color: var(--navy); }
+.port-link { color: var(--teal); text-decoration: none; font-weight: 600; }
+.port-link:hover { text-decoration: underline; }
+
+.status { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.running { background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+.status-dot.stopped { background: var(--red); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+.status-dot.other { background: var(--gray-400); }
+
+.monitors-count { font-weight: 600; }
+.monitors-count.na { color: var(--gray-400); font-weight: 400; }
+
+.btn-log {
+  background: var(--teal-bg); color: var(--teal-d); border: none; padding: 6px 14px;
+  border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background .2s;
+}
+.btn-log:hover { background: #d0f5ec; }
+
+.empty-state { padding: 60px 24px; text-align: center; color: var(--gray-600); }
+
+/* ── Log modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  align-items: center; justify-content: center; z-index: 200;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--white); border-radius: 12px; width: 90%; max-width: 720px;
+  max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.3);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--gray-200);
+}
+.modal-header h3 { font-size: 15px; font-weight: 700; color: var(--navy); }
+.modal-close {
+  background: none; border: none; font-size: 20px; color: var(--gray-600);
+  cursor: pointer; line-height: 1; padding: 4px;
+}
+.modal-close:hover { color: var(--gray-800); }
+.modal-body {
+  padding: 16px 20px; overflow-y: auto; background: var(--navy-d);
+  color: #d1e7e0; font-family: 'Consolas', 'Courier New', monospace; font-size: 12.5px;
+  line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>NetGuard Manager</h1>
+  <button class="btn-ghost" id="logoutBtn">ออกจากระบบ</button>
+</header>
+
+<div class="main">
+  <div class="toolbar">
+    <h2>Bot ทั้งหมด</h2>
+    <span class="refresh-note">รีเฟรชอัตโนมัติทุก 10 วินาที</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อ</th>
+          <th>Port</th>
+          <th>สถานะ</th>
+          <th>Monitors</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="botTableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">ไม่พบ bot ที่ติดตั้งอยู่</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="logModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="logModalTitle">Log</h3>
+      <button class="modal-close" id="logModalClose">&times;</button>
+    </div>
+    <div class="modal-body" id="logModalBody">Loading...</div>
+  </div>
+</div>
+
+<script>
+const tbody = document.getElementById('botTableBody');
+const emptyState = document.getElementById('emptyState');
+const logModal = document.getElementById('logModal');
+const logModalBody = document.getElementById('logModalBody');
+const logModalTitle = document.getElementById('logModalTitle');
+
+function statusClass(state) {
+  if (state === 'running') return 'running';
+  if (state === 'exited' || state === 'dead') return 'stopped';
+  return 'other';
+}
+
+function statusLabel(state) {
+  if (state === 'running') return 'Running';
+  if (state === 'exited') return 'Stopped';
+  return state || 'Unknown';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts);
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    throw new Error('unauthorized');
+  }
+  if (!res.ok) throw new Error(`request failed: ${res.status}`);
+  return res.json();
+}
+
+async function loadBots() {
+  let bots;
+  try {
+    bots = await fetchJson('/api/bots');
+  } catch (err) {
+    return;
+  }
+
+  if (!bots.length) {
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  tbody.innerHTML = bots.map((bot) => `
+    <tr data-id="${escapeHtml(bot.id)}">
+      <td class="bot-name">${escapeHtml(bot.name)}</td>
+      <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
+      <td>
+        <span class="status">
+          <span class="status-dot ${statusClass(bot.state)}"></span>
+          ${statusLabel(bot.state)}
+        </span>
+      </td>
+      <td class="monitors-cell"><span class="monitors-count na">-</span></td>
+      <td><button class="btn-log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(bot.name)}">ดู Log</button></td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('.btn-log').forEach((btn) => {
+    btn.addEventListener('click', () => openLogModal(btn.dataset.id, btn.dataset.name));
+  });
+
+  bots.filter((b) => b.state === 'running' && b.port).forEach(loadBotHealth);
+}
+
+async function loadBotHealth(bot) {
+  const row = tbody.querySelector(`tr[data-id="${bot.id}"] .monitors-cell`);
+  if (!row) return;
+  try {
+    const health = await fetchJson(`/api/bots/${bot.id}/health`);
+    row.innerHTML = health.ok
+      ? `<span class="monitors-count">${health.monitorsLoaded}</span>`
+      : `<span class="monitors-count na">offline</span>`;
+  } catch (err) {
+    row.innerHTML = `<span class="monitors-count na">-</span>`;
+  }
+}
+
+async function openLogModal(id, name) {
+  logModalTitle.textContent = `Log — ${name}`;
+  logModalBody.textContent = 'Loading...';
+  logModal.classList.add('show');
+  try {
+    const lines = await fetchJson(`/api/bots/${id}/logs`);
+    logModalBody.textContent = lines.length ? lines.join('\n') : '(ไม่มี log)';
+  } catch (err) {
+    logModalBody.textContent = 'โหลด log ไม่สำเร็จ';
+  }
+}
+
+document.getElementById('logModalClose').addEventListener('click', () => {
+  logModal.classList.remove('show');
+});
+logModal.addEventListener('click', (e) => {
+  if (e.target === logModal) logModal.classList.remove('show');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+
+loadBots();
+setInterval(loadBots, 10000);
+</script>
+</body>
+</html>
