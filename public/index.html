@@ -36,8 +36,48 @@ header .actions { display: flex; align-items: center; gap: 10px; }
 .btn-teal:hover:not(:disabled) { background: var(--teal-d); }
 
 .main { max-width: 1150px; margin: 0 auto; padding: 28px 24px; }
+
+/* ── Search (header) ── */
+.search-wrap { position: relative; }
+.search-wrap input[type=text] {
+  padding: 7px 30px 7px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.3);
+  background: rgba(255,255,255,.12); color: var(--white); font-size: 13px; font-family: var(--font);
+  width: 220px; outline: none; transition: background .2s, border-color .2s;
+}
+.search-wrap input[type=text]::placeholder { color: rgba(255,255,255,.55); }
+.search-wrap input[type=text]:focus { background: rgba(255,255,255,.2); border-color: var(--teal); }
+.search-clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: rgba(255,255,255,.7); font-size: 15px; cursor: pointer; padding: 2px 4px; line-height: 1;
+}
+.search-clear:hover { color: var(--white); }
+
+/* ── Summary bar ── */
+.summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.summary-card {
+  background: var(--white); border: 2px solid transparent; border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 16px 18px; text-align: left;
+  cursor: pointer; font-family: var(--font); transition: border-color .15s, transform .1s;
+}
+.summary-card:hover { transform: translateY(-1px); }
+.summary-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.summary-card.active { border-color: var(--teal); }
+.summary-label { font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+.summary-number { font-size: 26px; font-weight: 700; color: var(--navy); }
+@media (max-width: 700px) { .summary-bar { grid-template-columns: repeat(2, 1fr); } }
+
 .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .toolbar h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
+.toolbar-refresh { display: flex; align-items: center; gap: 8px; }
+.btn-refresh-icon {
+  border: none; background: var(--white); color: var(--gray-600); width: 28px; height: 28px;
+  border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.12); cursor: pointer; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: center; transition: color .15s;
+}
+.btn-refresh-icon:hover:not(:disabled) { color: var(--teal-d); }
+.btn-refresh-icon:disabled { cursor: not-allowed; }
+.btn-refresh-icon.spinning { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .refresh-note { font-size: 12px; color: var(--gray-600); }
 
 .card { background: var(--white); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
@@ -49,9 +89,13 @@ thead th {
 }
 tbody td { padding: 14px 16px; border-bottom: 1px solid var(--gray-200); font-size: 14px; vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover { background: var(--gray-50); }
+tbody tr:nth-child(even) { background: var(--gray-50); }
+tbody tr:hover { background: #eaf7f3; }
+tbody tr.clickable-row:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 
 .bot-name { font-weight: 600; color: var(--navy); }
+.bot-cell-company { font-weight: 600; color: var(--navy); }
+.bot-cell-name { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
 .port-link { color: var(--teal); text-decoration: none; font-weight: 600; }
 .port-link:hover { text-decoration: underline; }
 
@@ -61,8 +105,16 @@ tbody tr:hover { background: var(--gray-50); }
 .status-dot.stopped { background: var(--red); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
 .status-dot.other { background: var(--gray-400); }
 
+.tunnel-icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
+  border-radius: 50%; margin-left: 4px; font-size: 9px; cursor: default;
+}
+.tunnel-icon.ok { background: rgba(16,185,129,.18); }
+.tunnel-icon.down { background: rgba(239,68,68,.18); }
+
 .monitors-count { font-weight: 600; }
 .monitors-count.na { color: var(--gray-400); font-weight: 400; }
+.info-cell-text { font-size: 13px; color: var(--gray-800); }
 
 .customer-name { font-weight: 600; color: var(--navy); }
 .customer-empty { color: var(--gray-400); }
@@ -96,7 +148,7 @@ tbody tr:hover { background: var(--gray-50); }
 .state-dot.down { background: var(--red); }
 .state-dot.unknown { background: var(--gray-400); }
 
-.action-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-actions { display: flex; align-items: center; gap: 6px; position: relative; }
 .btn-icon {
   border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
   cursor: pointer; transition: background .2s, opacity .2s; display: inline-flex; align-items: center; gap: 5px;
@@ -106,18 +158,30 @@ tbody tr:hover { background: var(--gray-50); }
 .btn-start:hover:not(:disabled) { background: #d0f5ec; }
 .btn-stop { background: var(--amber-bg); color: #b45309; }
 .btn-stop:hover:not(:disabled) { background: #fef3c7; }
-.btn-restart { background: var(--gray-100); color: var(--gray-800); }
-.btn-restart:hover:not(:disabled) { background: var(--gray-200); }
-.btn-remove { background: var(--red-bg); color: var(--red-d); }
-.btn-remove:hover:not(:disabled) { background: #fde2e2; }
-.btn-log { background: var(--gray-100); color: var(--gray-800); }
-.btn-log:hover:not(:disabled) { background: var(--gray-200); }
-.btn-tunnel-add { background: var(--teal-bg); color: var(--teal-d); }
-.btn-tunnel-add:hover:not(:disabled) { background: #d0f5ec; }
-.btn-edit-meta { background: var(--gray-100); color: var(--gray-800); }
-.btn-edit-meta:hover:not(:disabled) { background: var(--gray-200); }
+.btn-kebab { background: var(--gray-100); color: var(--gray-800); font-size: 16px; line-height: 1; padding: 6px 10px; }
+.btn-kebab:hover { background: var(--gray-200); }
+
+.kebab-wrap { position: relative; }
+.kebab-menu {
+  /* position: fixed + top/left คำนวณจาก JS (ดู toggleKebab) — ไม่ใช้ absolute เพราะ
+     .card มี overflow:hidden (กันมุมตารางโค้งล้น) ซึ่งจะ clip dropdown ถ้าใช้ absolute */
+  display: none; position: fixed; z-index: 500;
+  background: var(--white); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  min-width: 200px; padding: 6px; border: 1px solid var(--gray-200);
+}
+.kebab-menu.show { display: block; }
+.kebab-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  border: none; background: none; padding: 8px 10px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; color: var(--gray-800); cursor: pointer; font-family: var(--font);
+}
+.kebab-item:hover, .kebab-item:focus-visible { background: var(--gray-100); }
+.kebab-divider { height: 1px; background: var(--gray-200); margin: 6px 4px; }
+.kebab-danger { color: var(--red-d); }
+.kebab-danger:hover, .kebab-danger:focus-visible { background: var(--red-bg); }
 
 .empty-state { padding: 60px 24px; text-align: center; color: var(--gray-600); }
+.empty-state p { margin-bottom: 16px; font-size: 14px; }
 
 /* ── Modal (shared) ── */
 .modal-overlay {
@@ -208,12 +272,22 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
 .toast.error { border-left-color: var(--red); }
 .toast.info { border-left-color: var(--amber); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Responsive — วางท้ายสุดเสมอ เพื่อให้ชนะ cascade ไม่ว่าจะเพิ่มกฎอะไรไว้ก่อนหน้า ── */
+@media (max-width: 900px) {
+  .col-info { display: none; }
+  .btn-main-action { display: none; }
+}
 </style>
 </head>
 <body>
 <header>
   <h1><span class="dot"></span>NetGuard Manager</h1>
   <div class="actions">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="ค้นหา bot, บริษัท, ผู้ติดต่อ..." autocomplete="off">
+      <button type="button" class="search-clear" id="searchClearBtn" title="ล้างคำค้น" hidden>&times;</button>
+    </div>
     <button class="btn btn-ghost" id="pullImageBtn">อัปเดต Image</button>
     <button class="btn btn-teal" id="openCreateBtn">+ สร้าง Bot ใหม่</button>
     <button class="btn btn-ghost" id="logoutBtn">ออกจากระบบ</button>
@@ -221,28 +295,55 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
 </header>
 
 <div class="main">
-  <div class="toolbar">
-    <h2>Bot ทั้งหมด</h2>
-    <span class="refresh-note">รีเฟรชอัตโนมัติทุก 10 วินาที</span>
+  <div class="summary-bar" id="summaryBar">
+    <button type="button" class="summary-card" id="cardTotal" data-filter="">
+      <div class="summary-label">Bot ทั้งหมด</div>
+      <div class="summary-number" id="countTotal">0</div>
+    </button>
+    <button type="button" class="summary-card" id="cardHealthy" data-filter="healthy">
+      <div class="summary-label">ทำงานปกติ</div>
+      <div class="summary-number" id="countHealthy">0</div>
+    </button>
+    <button type="button" class="summary-card" id="cardProblem" data-filter="problem">
+      <div class="summary-label">มีปัญหา</div>
+      <div class="summary-number" id="countProblem">0</div>
+    </button>
+    <button type="button" class="summary-card" id="cardContract" data-filter="contract">
+      <div class="summary-label">สัญญาใกล้หมด</div>
+      <div class="summary-number" id="countContract">0</div>
+    </button>
   </div>
 
-  <div class="card">
+  <div class="toolbar">
+    <h2>Bot ทั้งหมด</h2>
+    <div class="toolbar-refresh">
+      <button type="button" class="btn-refresh-icon" id="refreshBtn" title="รีเฟรชตอนนี้" aria-label="รีเฟรชตอนนี้">&#8635;</button>
+      <span class="refresh-note" id="refreshNote">รีเฟรชอัตโนมัติทุก 10 วินาที</span>
+    </div>
+  </div>
+
+  <div class="card" id="botsCard">
     <table>
       <thead>
         <tr>
-          <th>ลูกค้า</th>
-          <th>ชื่อ</th>
-          <th>Port</th>
+          <th>ลูกค้า / Bot</th>
           <th>สถานะ</th>
-          <th>Monitors</th>
-          <th>Tunnel</th>
           <th>Uptime 30 วัน</th>
+          <th class="col-info">ข้อมูล</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="botTableBody"></tbody>
     </table>
-    <div class="empty-state" id="emptyState" style="display:none;">ไม่พบ bot ที่ติดตั้งอยู่</div>
+  </div>
+
+  <div class="empty-state" id="emptyStateNone" style="display:none;">
+    <p>ยังไม่มี Bot</p>
+    <button class="btn btn-teal" id="emptyCreateBtn">+ สร้าง Bot ใหม่ เพื่อเริ่มต้น</button>
+  </div>
+  <div class="empty-state" id="emptyStateFiltered" style="display:none;">
+    <p>ไม่พบ Bot ที่ตรงกับเงื่อนไข</p>
+    <button class="btn btn-secondary" id="clearFiltersBtn">ล้างตัวกรอง</button>
   </div>
 </div>
 
@@ -415,7 +516,14 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
 
 <script>
 const tbody = document.getElementById('botTableBody');
-const emptyState = document.getElementById('emptyState');
+const botsCard = document.getElementById('botsCard');
+const emptyStateNone = document.getElementById('emptyStateNone');
+const emptyStateFiltered = document.getElementById('emptyStateFiltered');
+
+const searchInput = document.getElementById('searchInput');
+const searchClearBtn = document.getElementById('searchClearBtn');
+const refreshBtn = document.getElementById('refreshBtn');
+const refreshNote = document.getElementById('refreshNote');
 
 const logModal = document.getElementById('logModal');
 const logModalBody = document.getElementById('logModalBody');
@@ -465,6 +573,10 @@ let removeTarget = null;
 let attachTunnelTarget = null;
 let editMetaTarget = null;
 let refreshTimer = null;
+let noteTimer = null;
+let searchQuery = '';
+let activeCardFilter = '';
+let lastRefreshedAt = null;
 
 function showToast(message, type) {
   const el = document.createElement('div');
@@ -486,10 +598,25 @@ function statusLabel(state) {
   return state || 'Unknown';
 }
 
-function tunnelInfo(tunnel) {
-  if (!tunnel || !tunnel.exists) return { dot: 'other', label: 'ไม่มี' };
-  if (tunnel.state === 'running') return { dot: 'running', label: 'เชื่อมต่อ' };
-  return { dot: 'stopped', label: 'หยุด' };
+function tunnelIcon(tunnel) {
+  if (!tunnel || !tunnel.exists) return '';
+  const ok = tunnel.state === 'running';
+  const title = ok ? 'Tunnel เชื่อมต่ออยู่' : 'Tunnel ล่ม';
+  return `<span class="tunnel-icon ${ok ? 'ok' : 'down'}" title="${title}">&#128279;</span>`;
+}
+
+// ทำงานปกติ = state running + health ok + tunnel (ถ้ามี) ต้องไม่ล่ม
+// มีปัญหา = stopped/other, unhealthy, หรือ tunnel ล่ม
+function botStatus(bot) {
+  if (bot.state !== 'running') return 'problem';
+  if (!bot.health || bot.health.ok !== true) return 'problem';
+  if (bot.tunnel && bot.tunnel.exists && bot.tunnel.state !== 'running') return 'problem';
+  return 'healthy';
+}
+
+function contractSoon(bot) {
+  const days = daysUntil(bot.meta && bot.meta.contractEnd);
+  return days !== null && days < 30;
 }
 
 function daysUntil(dateStr) {
@@ -515,15 +642,32 @@ function uptimeCell(pct) {
   return `<span class="uptime-value ${cls}">${pct.toFixed(1)}%</span>`;
 }
 
-function customerCell(meta) {
-  meta = meta || {};
+function botCell(bot, name) {
+  const meta = bot.meta || {};
+  const badge = contractBadge(meta.contractEnd);
   if (!meta.companyName) {
-    return '<span class="customer-empty">&mdash;</span>';
+    return `<div class="bot-cell-company">${escapeHtml(name)}${badge}</div>`;
   }
   const tooltipParts = [meta.contactName, meta.contactPhone].filter(Boolean);
   const tooltip = tooltipParts.join(' ');
   const titleAttr = tooltip ? ` title="${escapeHtml(tooltip)}"` : '';
-  return `<span class="customer-name"${titleAttr}>${escapeHtml(meta.companyName)}</span>${contractBadge(meta.contractEnd)}`;
+  return `
+    <div class="bot-cell-company"${titleAttr}>${escapeHtml(meta.companyName)}${badge}</div>
+    <div class="bot-cell-name">${escapeHtml(name)}</div>
+  `;
+}
+
+function infoCell(bot) {
+  const portPart = bot.port
+    ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>`
+    : '-';
+  let monitorsPart = '-';
+  if (bot.state === 'running') {
+    monitorsPart = bot.health && bot.health.ok
+      ? `${(bot.health.monitorsLoaded && bot.health.monitorsLoaded.length) || 0} monitors`
+      : (bot.health ? escapeHtml(bot.health.reason || 'offline') : '-');
+  }
+  return `<span class="info-cell-text">${portPart} &middot; ${monitorsPart}</span>`;
 }
 
 function escapeHtml(str) {
@@ -557,70 +701,121 @@ async function loadBots() {
   } catch (err) {
     return;
   }
+
+  // ดึง health ของทุก bot ที่ running มาก่อน render — การ์ดสรุป + filter "มีปัญหา"
+  // ต้องใช้ข้อมูลนี้ตั้งแต่รอบแรก ไม่ใช่ทยอยเติมทีหลังเหมือนเดิม
+  await Promise.all(bots.filter((b) => b.state === 'running').map(async (bot) => {
+    try {
+      bot.health = await fetchJson(`/api/bots/${bot.id}/health`);
+    } catch (err) {
+      bot.health = { ok: false, reason: 'error' };
+    }
+  }));
+
   botsCache = bots;
+  lastRefreshedAt = Date.now();
+  updateRefreshNote();
+  renderSummaryBar(bots);
+  renderTable();
+}
 
-  if (!bots.length) {
-    tbody.innerHTML = '';
-    emptyState.style.display = 'block';
-    return;
+function renderSummaryBar(bots) {
+  document.getElementById('countTotal').textContent = bots.length;
+  document.getElementById('countHealthy').textContent = bots.filter((b) => botStatus(b) === 'healthy').length;
+  document.getElementById('countProblem').textContent = bots.filter((b) => botStatus(b) === 'problem').length;
+  document.getElementById('countContract').textContent = bots.filter(contractSoon).length;
+}
+
+function applyFilters(bots) {
+  let list = bots;
+  if (activeCardFilter === 'healthy') list = list.filter((b) => botStatus(b) === 'healthy');
+  if (activeCardFilter === 'problem')  list = list.filter((b) => botStatus(b) === 'problem');
+  if (activeCardFilter === 'contract') list = list.filter(contractSoon);
+
+  const q = searchQuery.trim().toLowerCase();
+  if (q) {
+    list = list.filter((b) => {
+      const name = botDisplayName(b).toLowerCase();
+      const company = ((b.meta && b.meta.companyName) || '').toLowerCase();
+      const contact = ((b.meta && b.meta.contactName) || '').toLowerCase();
+      return name.includes(q) || company.includes(q) || contact.includes(q);
+    });
   }
-  emptyState.style.display = 'none';
+  return list;
+}
 
-  tbody.innerHTML = bots.map((bot) => {
-    const running = bot.state === 'running';
-    const name = botDisplayName(bot);
-    const tInfo = tunnelInfo(bot.tunnel);
-    const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
-    return `
-    <tr data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}" class="clickable-row">
-      <td>${customerCell(bot.meta)}</td>
-      <td class="bot-name">${escapeHtml(name)}</td>
-      <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
+function rowTemplate(bot) {
+  const running = bot.state === 'running';
+  const name = botDisplayName(bot);
+  const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
+  const id = escapeHtml(bot.id);
+  const n = escapeHtml(name);
+
+  const mainActionBtn = running
+    ? `<button class="btn-icon btn-stop btn-main-action" data-action="stop" data-id="${id}">&#9208; Stop</button>`
+    : `<button class="btn-icon btn-start btn-main-action" data-action="start" data-id="${id}">&#9654; Start</button>`;
+  const kebabToggleAction = running
+    ? `<button class="kebab-item" role="menuitem" data-action="stop" data-id="${id}">&#9208; Stop</button>`
+    : `<button class="kebab-item" role="menuitem" data-action="start" data-id="${id}">&#9654; Start</button>`;
+
+  return `
+    <tr data-id="${id}" data-name="${n}" class="clickable-row" tabindex="0" role="button" aria-label="ดูสถิติของ ${n}">
+      <td>${botCell(bot, name)}</td>
       <td>
         <span class="status">
           <span class="status-dot ${statusClass(bot.state)}"></span>
           ${statusLabel(bot.state)}
-        </span>
-      </td>
-      <td class="monitors-cell"><span class="monitors-count na">-</span></td>
-      <td>
-        <span class="status">
-          <span class="status-dot ${tInfo.dot}"></span>
-          ${tInfo.label}
+          ${tunnelIcon(bot.tunnel)}
         </span>
       </td>
       <td class="uptime-cell">${uptimeCell(null)}</td>
+      <td class="col-info">${infoCell(bot)}</td>
       <td>
-        <div class="action-group">
-          ${!running ? `<button class="btn-icon btn-start" data-action="start" data-id="${escapeHtml(bot.id)}">&#9654; Start</button>` : ''}
-          ${running ? `<button class="btn-icon btn-stop" data-action="stop" data-id="${escapeHtml(bot.id)}">&#9208; Stop</button>` : ''}
-          <button class="btn-icon btn-restart" data-action="restart" data-id="${escapeHtml(bot.id)}">&#8635; Restart</button>
-          <button class="btn-icon btn-log" data-action="log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}">ดู Log</button>
-          <button class="btn-icon btn-edit-meta" data-action="edit-meta" data-name="${escapeHtml(name)}">&#9998; แก้ไขข้อมูล</button>
-          ${!hasTunnel ? `<button class="btn-icon btn-tunnel-add" data-action="tunnel-add" data-name="${escapeHtml(name)}">+ Tunnel</button>` : ''}
-          ${hasTunnel ? `<button class="btn-icon btn-log" data-action="tunnel-log" data-name="${escapeHtml(name)}">Tunnel Log</button>` : ''}
-          ${hasTunnel ? `<button class="btn-icon btn-remove" data-action="tunnel-remove" data-name="${escapeHtml(name)}">ลบ Tunnel</button>` : ''}
-          <button class="btn-icon btn-remove" data-action="remove" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}">&#128465; Remove</button>
+        <div class="row-actions">
+          ${mainActionBtn}
+          <div class="kebab-wrap">
+            <button class="btn-icon btn-kebab" type="button" data-kebab-toggle data-id="${id}" aria-haspopup="true" aria-expanded="false" title="เมนูเพิ่มเติม">&#8942;</button>
+            <div class="kebab-menu" role="menu">
+              ${kebabToggleAction}
+              <button class="kebab-item" role="menuitem" data-action="restart" data-id="${id}">&#8635; Restart</button>
+              <button class="kebab-item" role="menuitem" data-action="log" data-id="${id}" data-name="${n}">&#128196; ดู Log</button>
+              <button class="kebab-item" role="menuitem" data-action="edit-meta" data-name="${n}">&#9998; แก้ไขข้อมูลลูกค้า</button>
+              ${!hasTunnel ? `<button class="kebab-item" role="menuitem" data-action="tunnel-add" data-name="${n}">&#128279; เพิ่ม Tunnel</button>` : ''}
+              ${hasTunnel ? `<button class="kebab-item" role="menuitem" data-action="tunnel-log" data-name="${n}">&#128279; ดู Tunnel Log</button>` : ''}
+              ${hasTunnel ? `<button class="kebab-item" role="menuitem" data-action="tunnel-remove" data-name="${n}">&#128279; ลบ Tunnel</button>` : ''}
+              <div class="kebab-divider"></div>
+              <button class="kebab-item kebab-danger" role="menuitem" data-action="remove" data-id="${id}" data-name="${n}">&#128465; ลบ Bot</button>
+            </div>
+          </div>
         </div>
       </td>
     </tr>
   `;
-  }).join('');
+}
 
-  document.querySelectorAll('[data-action]').forEach((btn) => {
-    btn.addEventListener('click', () => onActionClick(btn));
-  });
+function renderTable() {
+  if (!botsCache.length) {
+    botsCard.style.display = 'none';
+    emptyStateNone.style.display = 'block';
+    emptyStateFiltered.style.display = 'none';
+    return;
+  }
 
-  document.querySelectorAll('#botTableBody tr.clickable-row').forEach((tr) => {
-    tr.addEventListener('click', (e) => {
-      if (e.target.closest('.action-group') || e.target.closest('a')) return;
-      const name = tr.dataset.name;
-      if (name) openStatsModal(name);
-    });
-  });
+  const filtered = applyFilters(botsCache);
 
-  bots.filter((b) => b.state === 'running').forEach(loadBotHealth);
-  bots.forEach(loadBotUptime);
+  if (!filtered.length) {
+    botsCard.style.display = 'none';
+    emptyStateNone.style.display = 'none';
+    emptyStateFiltered.style.display = 'block';
+    return;
+  }
+
+  botsCard.style.display = '';
+  emptyStateNone.style.display = 'none';
+  emptyStateFiltered.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(rowTemplate).join('');
+  filtered.forEach(loadBotUptime);
 }
 
 async function loadBotUptime(bot) {
@@ -635,19 +830,143 @@ async function loadBotUptime(bot) {
   }
 }
 
-async function loadBotHealth(bot) {
-  const row = tbody.querySelector(`tr[data-id="${bot.id}"] .monitors-cell`);
-  if (!row) return;
-  try {
-    const health = await fetchJson(`/api/bots/${bot.id}/health`);
-    const count = Array.isArray(health.monitorsLoaded) ? health.monitorsLoaded.length : (health.monitorsLoaded || 0);
-    row.innerHTML = health.ok
-      ? `<span class="monitors-count">${count}</span>`
-      : `<span class="monitors-count na">${escapeHtml(health.reason || 'offline')}</span>`;
-  } catch (err) {
-    row.innerHTML = `<span class="monitors-count na">-</span>`;
-  }
+// ── Summary card filter (toggle) ──
+function updateActiveCardUI() {
+  document.querySelectorAll('.summary-card').forEach((card) => {
+    card.classList.toggle('active', card.dataset.filter !== '' && card.dataset.filter === activeCardFilter);
+  });
 }
+
+document.querySelectorAll('.summary-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const f = card.dataset.filter;
+    activeCardFilter = f === '' ? '' : (activeCardFilter === f ? '' : f);
+    updateActiveCardUI();
+    renderTable();
+  });
+});
+
+// ── Search ──
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value;
+  searchClearBtn.hidden = !searchQuery;
+  renderTable();
+});
+searchClearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  searchClearBtn.hidden = true;
+  renderTable();
+  searchInput.focus();
+});
+
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  searchClearBtn.hidden = true;
+  activeCardFilter = '';
+  updateActiveCardUI();
+  renderTable();
+});
+document.getElementById('emptyCreateBtn').addEventListener('click', openCreateModal);
+
+// ── Manual refresh + "อัปเดตเมื่อ..." ──
+function relativeTimeText(ms) {
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 5) return 'เมื่อสักครู่';
+  if (sec < 60) return `${sec} วินาทีที่แล้ว`;
+  const min = Math.floor(sec / 60);
+  return `${min} นาทีที่แล้ว`;
+}
+function updateRefreshNote() {
+  if (!lastRefreshedAt) return;
+  refreshNote.textContent = `อัปเดตเมื่อ ${relativeTimeText(lastRefreshedAt)}`;
+}
+noteTimer = setInterval(updateRefreshNote, 1000);
+
+refreshBtn.addEventListener('click', async () => {
+  refreshBtn.classList.add('spinning');
+  refreshBtn.disabled = true;
+  try {
+    await loadBots();
+  } finally {
+    refreshBtn.classList.remove('spinning');
+    refreshBtn.disabled = false;
+  }
+});
+
+// ── Kebab dropdown menu ──
+// position: fixed + top/left คำนวณเอง (ไม่ใช้ CSS anchor) เพราะ .card มี overflow:hidden
+// ซึ่งจะ clip dropdown ถ้าปล่อยให้เป็น descendant ที่ positioned แบบ absolute ตามปกติ
+const KEBAB_MENU_WIDTH = 200;
+const KEBAB_MENU_EST_HEIGHT = 260;
+
+function closeAllKebabs() {
+  document.querySelectorAll('.kebab-menu.show').forEach((el) => el.classList.remove('show'));
+  document.querySelectorAll('.btn-kebab[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+}
+
+function toggleKebab(btn) {
+  const wrap = btn.closest('.kebab-wrap');
+  const menu = wrap.querySelector('.kebab-menu');
+  const wasOpen = menu.classList.contains('show');
+  closeAllKebabs();
+  if (wasOpen) return;
+
+  const rect = btn.getBoundingClientRect();
+
+  let top = rect.bottom + 4;
+  if (top + KEBAB_MENU_EST_HEIGHT > window.innerHeight) {
+    top = Math.max(4, rect.top - KEBAB_MENU_EST_HEIGHT - 4); // ล้นขอบล่าง → เปิดขึ้นบนแทน
+  }
+  let left = rect.right - KEBAB_MENU_WIDTH;
+  left = Math.max(4, Math.min(left, window.innerWidth - KEBAB_MENU_WIDTH - 4));
+
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+  menu.classList.add('show');
+  btn.setAttribute('aria-expanded', 'true');
+}
+
+// เมนูยึดตำแหน่งจาก getBoundingClientRect ตอนเปิด — ถ้า scroll แล้วตำแหน่งเพี้ยน ให้ปิดไปเลย
+window.addEventListener('scroll', () => closeAllKebabs(), true);
+
+// event delegation — ผูกครั้งเดียว ไม่ต้อง re-attach ทุกรอบ render
+tbody.addEventListener('click', (e) => {
+  const kebabToggle = e.target.closest('[data-kebab-toggle]');
+  if (kebabToggle) { e.stopPropagation(); toggleKebab(kebabToggle); return; }
+
+  const actionBtn = e.target.closest('[data-action]');
+  if (actionBtn) {
+    e.stopPropagation();
+    closeAllKebabs();
+    onActionClick(actionBtn);
+    return;
+  }
+
+  if (e.target.closest('a')) return;
+
+  const tr = e.target.closest('tr[data-name]');
+  if (tr) openStatsModal(tr.dataset.name);
+});
+
+tbody.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tr = e.target.closest('tr[data-name]');
+  if (tr && e.target === tr) {
+    e.preventDefault();
+    openStatsModal(tr.dataset.name);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.kebab-wrap')) closeAllKebabs();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  closeAllKebabs();
+  document.querySelectorAll('.modal-overlay.show').forEach((m) => m.classList.remove('show'));
+});
 
 function onActionClick(btn) {
   const action = btn.dataset.action;
