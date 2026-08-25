@@ -42,7 +42,6 @@ Dashboard จัดการบอทหลายตัวบน server เด�
 
 ยังไม่ทำ:
 - SQLite เก็บสถิติ uptime/alert ย้อนหลัง
-- ตั้ง MANAGER_PASSWORD_HASH จริง (ตอนนี้ยังเป็น default admin)
 - ยังไม่ทดสอบบน Linux server จริง
 
 ## หลักการตัดสินใจ
@@ -73,7 +72,7 @@ cd "D:\Project Code\NetguardManager"
 docker compose up -d --build
 docker compose ps
 docker compose logs manager --tail 30
-Dashboard: http://localhost:8080 (รหัส default: admin)
+Dashboard: http://localhost:8080 (รหัสตั้งไว้แล้วใน .env)
 
 สร้าง password hash จริง (แทน default admin):
 node scripts/gen-password.js "<รหัสผ่านที่ต้องการ>"
