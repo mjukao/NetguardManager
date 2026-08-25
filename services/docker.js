@@ -113,7 +113,10 @@ async function getTunnelStatus(botName) {
 async function listBots() {
   const containers = await docker.listContainers({ all: true });
   const bots = containers.filter((c) => {
-    const managed = (c.Labels && c.Labels['netguard.managed'] === 'true') || c.Image === config.botImage;
+    // เฉพาะ label เท่านั้น — ไม่ fallback ไป image name เพราะ container อื่น
+    // ที่ใช้ image เดียวกันโดยบังเอิญ (เช่น bot ที่ติดตั้งผ่าน install.sh
+    // ไม่ผ่าน manager) ไม่ควรถูก manager คุม/poll ด้วย
+    const managed = c.Labels && c.Labels['netguard.managed'] === 'true';
     const isTunnel = c.Labels && c.Labels['netguard.role'] === 'tunnel';
     return managed && !isTunnel;
   });
