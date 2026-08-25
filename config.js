@@ -11,4 +11,7 @@ module.exports = {
   // since dockerode's Binds are resolved by the daemon on the host, not in here)
   botsHostPath: process.env.BOTS_HOST_PATH || '',
   botNetwork: process.env.BOT_NETWORK || 'netguard-net',
+  // path ของ SQLite DB ภายใน container — mount เป็น named volume แยกจาก /bots
+  // (ดูเหตุผลใน CLAUDE.md หัวข้อ "เฟส 5")
+  dbPath: process.env.DB_PATH || '/app/data/stats.db',
 };

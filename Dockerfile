@@ -1,6 +1,9 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
+
+# better-sqlite3 เป็น native module ต้อง compile ตอน npm install
+RUN apk add --no-cache python3 make g++
 
 COPY package.json ./
 RUN npm install --omit=dev

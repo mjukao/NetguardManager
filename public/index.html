@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NetGuard Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -68,6 +69,32 @@ tbody tr:hover { background: var(--gray-50); }
 .contract-badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-left: 6px; white-space: nowrap; vertical-align: middle; }
 .contract-warning { background: var(--amber-bg); color: #b45309; }
 .contract-expired { background: var(--red-bg); color: var(--red-d); }
+
+.uptime-value { font-weight: 700; }
+.uptime-good { color: var(--green); }
+.uptime-warn { color: #b45309; }
+.uptime-bad  { color: var(--red-d); }
+.uptime-na   { color: var(--gray-400); font-weight: 400; }
+
+.clickable-row { cursor: pointer; }
+
+/* ── Stats modal ── */
+.stat-big-row { display: flex; gap: 12px; margin-bottom: 20px; }
+.stat-big-card { flex: 1; background: var(--gray-50); border-radius: 10px; padding: 14px; text-align: center; }
+.stat-big-label { font-size: 11.5px; color: var(--gray-600); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+.stat-big-number { font-size: 24px; font-weight: 700; color: var(--navy); }
+.stat-chart-section { margin-bottom: 20px; }
+.stat-chart-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.stat-chart-wrap { position: relative; height: 180px; }
+.stat-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.stat-table th { text-align: left; padding: 6px 8px; color: var(--gray-600); font-weight: 600; border-bottom: 1px solid var(--gray-200); }
+.stat-table td { padding: 6px 8px; border-bottom: 1px solid var(--gray-200); }
+.stat-table tr:last-child td { border-bottom: none; }
+.state-pill { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; font-size: 12px; }
+.state-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.state-dot.up { background: var(--green); }
+.state-dot.down { background: var(--red); }
+.state-dot.unknown { background: var(--gray-400); }
 
 .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn-icon {
@@ -209,6 +236,7 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
           <th>สถานะ</th>
           <th>Monitors</th>
           <th>Tunnel</th>
+          <th>Uptime 30 วัน</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -372,6 +400,17 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
   </div>
 </div>
 
+<!-- Stats detail modal -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="statsModalTitle">สถิติ</h3>
+      <button class="modal-close" id="statsModalClose">&times;</button>
+    </div>
+    <div class="modal-body" id="statsModalBody">Loading...</div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -413,9 +452,15 @@ const editNote = document.getElementById('editNote');
 const editCreatedAtDisplay = document.getElementById('editCreatedAtDisplay');
 const editMetaSubmitBtn = document.getElementById('editMetaSubmitBtn');
 
+const statsModal = document.getElementById('statsModal');
+const statsModalTitle = document.getElementById('statsModalTitle');
+const statsModalBody = document.getElementById('statsModalBody');
+
 const toastContainer = document.getElementById('toastContainer');
 
 let botsCache = [];
+let uptimeChart = null;
+let problemsChart = null;
 let removeTarget = null;
 let attachTunnelTarget = null;
 let editMetaTarget = null;
@@ -462,6 +507,12 @@ function contractBadge(contractEnd) {
   if (days < 0) return '<span class="contract-badge contract-expired">&#9888; หมดสัญญาแล้ว</span>';
   if (days < 30) return '<span class="contract-badge contract-warning">&#9888; ใกล้หมดสัญญา</span>';
   return '';
+}
+
+function uptimeCell(pct) {
+  if (pct === null || pct === undefined) return '<span class="uptime-value uptime-na">&mdash;</span>';
+  const cls = pct >= 99.5 ? 'uptime-good' : pct >= 95 ? 'uptime-warn' : 'uptime-bad';
+  return `<span class="uptime-value ${cls}">${pct.toFixed(1)}%</span>`;
 }
 
 function customerCell(meta) {
@@ -521,7 +572,7 @@ async function loadBots() {
     const tInfo = tunnelInfo(bot.tunnel);
     const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
     return `
-    <tr data-id="${escapeHtml(bot.id)}">
+    <tr data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}" class="clickable-row">
       <td>${customerCell(bot.meta)}</td>
       <td class="bot-name">${escapeHtml(name)}</td>
       <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
@@ -538,6 +589,7 @@ async function loadBots() {
           ${tInfo.label}
         </span>
       </td>
+      <td class="uptime-cell">${uptimeCell(null)}</td>
       <td>
         <div class="action-group">
           ${!running ? `<button class="btn-icon btn-start" data-action="start" data-id="${escapeHtml(bot.id)}">&#9654; Start</button>` : ''}
@@ -559,7 +611,28 @@ async function loadBots() {
     btn.addEventListener('click', () => onActionClick(btn));
   });
 
+  document.querySelectorAll('#botTableBody tr.clickable-row').forEach((tr) => {
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.action-group') || e.target.closest('a')) return;
+      const name = tr.dataset.name;
+      if (name) openStatsModal(name);
+    });
+  });
+
   bots.filter((b) => b.state === 'running').forEach(loadBotHealth);
+  bots.forEach(loadBotUptime);
+}
+
+async function loadBotUptime(bot) {
+  const name = botDisplayName(bot);
+  const cell = tbody.querySelector(`tr[data-id="${bot.id}"] .uptime-cell`);
+  if (!cell) return;
+  try {
+    const summary = await fetchJson(`/api/bots/${name}/stats/summary`);
+    cell.innerHTML = uptimeCell(summary.last30d);
+  } catch (err) {
+    cell.innerHTML = uptimeCell(null);
+  }
 }
 
 async function loadBotHealth(bot) {
@@ -874,6 +947,122 @@ removeConfirmBtn.addEventListener('click', async () => {
     removeConfirmBtn.disabled = false;
     removeConfirmBtn.textContent = 'ลบ';
   }
+});
+
+// ── Stats detail modal ──
+const STATE_LABEL = { up: 'Up', down: 'Down', unknown: 'Unknown' };
+
+function fmtTs(ts) {
+  return new Date(ts * 1000).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+async function openStatsModal(name) {
+  statsModalTitle.textContent = `สถิติ — ${name}`;
+  statsModalBody.innerHTML = 'Loading...';
+  statsModal.classList.add('show');
+  try {
+    const [summary, daily, samples] = await Promise.all([
+      fetchJson(`/api/bots/${name}/stats/summary`),
+      fetchJson(`/api/bots/${name}/stats/daily?days=30`),
+      fetchJson(`/api/bots/${name}/stats/samples?hours=24`),
+    ]);
+    renderStatsModal(summary, daily, samples);
+  } catch (err) {
+    statsModalBody.innerHTML = `<div class="form-error show">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function pctText(pct) {
+  return pct === null || pct === undefined ? '—' : `${pct.toFixed(1)}%`;
+}
+
+function renderStatsModal(summary, daily, samples) {
+  statsModalBody.innerHTML = `
+    <div class="stat-big-row">
+      <div class="stat-big-card"><div class="stat-big-label">24 ชม.</div><div class="stat-big-number">${pctText(summary.last24h)}</div></div>
+      <div class="stat-big-card"><div class="stat-big-label">7 วัน</div><div class="stat-big-number">${pctText(summary.last7d)}</div></div>
+      <div class="stat-big-card"><div class="stat-big-label">30 วัน</div><div class="stat-big-number">${pctText(summary.last30d)}</div></div>
+    </div>
+    <div class="stat-chart-section">
+      <div class="stat-chart-title">Uptime รายวัน (30 วัน)</div>
+      <div class="stat-chart-wrap"><canvas id="uptimeChartCanvas"></canvas></div>
+    </div>
+    <div class="stat-chart-section">
+      <div class="stat-chart-title">Problems (24 ชั่วโมงล่าสุด)</div>
+      <div class="stat-chart-wrap"><canvas id="problemsChartCanvas"></canvas></div>
+    </div>
+    <div class="stat-chart-section">
+      <div class="stat-chart-title">Sample ล่าสุด</div>
+      <table class="stat-table">
+        <thead><tr><th>เวลา</th><th>สถานะ</th><th>Problems</th></tr></thead>
+        <tbody>
+          ${samples.slice(-10).reverse().map((s) => `
+            <tr>
+              <td>${fmtTs(s.ts)}</td>
+              <td><span class="state-pill"><span class="state-dot ${s.state}"></span>${STATE_LABEL[s.state] || s.state}</span></td>
+              <td>${s.problems_total ?? '—'}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gray-400);">ไม่มีข้อมูล</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  if (uptimeChart) { uptimeChart.destroy(); uptimeChart = null; }
+  if (problemsChart) { problemsChart.destroy(); problemsChart = null; }
+
+  const uptimeCtx = document.getElementById('uptimeChartCanvas');
+  if (uptimeCtx && window.Chart) {
+    uptimeChart = new Chart(uptimeCtx, {
+      type: 'line',
+      data: {
+        labels: daily.map((d) => d.day.slice(5)),
+        datasets: [{
+          label: 'Uptime %',
+          data: daily.map((d) => d.uptime_pct),
+          borderColor: '#00b894',
+          backgroundColor: 'rgba(0,184,148,.12)',
+          fill: true,
+          tension: 0.25,
+          spanGaps: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+
+  const problemsCtx = document.getElementById('problemsChartCanvas');
+  if (problemsCtx && window.Chart) {
+    problemsChart = new Chart(problemsCtx, {
+      type: 'line',
+      data: {
+        labels: samples.map((s) => new Date(s.ts * 1000).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })),
+        datasets: [{
+          label: 'Problems',
+          data: samples.map((s) => s.problems_total),
+          borderColor: '#1e2a3a',
+          backgroundColor: 'rgba(30,42,58,.1)',
+          fill: true,
+          tension: 0.25,
+          spanGaps: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+}
+
+document.getElementById('statsModalClose').addEventListener('click', () => statsModal.classList.remove('show'));
+statsModal.addEventListener('click', (e) => {
+  if (e.target === statsModal) statsModal.classList.remove('show');
 });
 
 // ── Update image ──

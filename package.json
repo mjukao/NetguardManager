@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node index.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
+    "better-sqlite3": "^13.0.3",
     "cookie-parser": "^1.4.6",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",

@@ -13,6 +13,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${BOTS_HOST_PATH}:/bots
+      - manager-data:/app/data
     networks:
       - manager-net
 
@@ -20,3 +21,10 @@ networks:
   manager-net:
     name: netguard-net
     driver: bridge
+
+volumes:
+  # เก็บ stats.db (SQLite) — ใช้ named volume แทน bind mount แบบ BOTS_HOST_PATH เพราะ:
+  # 1) เป็นไฟล์ binary ของ manager เอง ไม่ต้องให้คนแก้ไข/อ่านจาก host โดยตรงเหมือนไฟล์ .env ของแต่ละ bot
+  # 2) เลี่ยงปัญหา host path บน Windows ที่เคยเจอมาแล้ว (ดู CLAUDE.md บทเรียน)
+  # 3) ไม่ต้องเพิ่ม env var ใหม่ (ไม่ต้องมี MANAGER_DATA_HOST_PATH) — Docker จัดการ lifecycle ให้เอง
+  manager-data:

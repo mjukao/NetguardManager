@@ -6,6 +6,8 @@ const logger = require('./services/logger');
 const guard = require('./middleware/guard');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
+const statsDb = require('./services/stats-db');
+const poller = require('./services/poller');
 
 const app = express();
 const publicDir = path.join(__dirname, 'public');
@@ -30,6 +32,20 @@ app.use(express.static(publicDir, { index: false }));
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
-app.listen(config.port, () => {
+statsDb.initDb();
+poller.startPolling().catch((err) => logger.error('poller: startPolling ล้มเหลว', err.message));
+
+const server = app.listen(config.port, () => {
   logger.info(`NetGuard Manager listening on port ${config.port}`);
 });
+
+function shutdown(signal) {
+  logger.info(`NetGuard Manager received ${signal} — shutting down`);
+  poller.stopPolling();
+  statsDb.closeDb();
+  server.close(() => process.exit(0));
+  // เผื่อ server.close() ค้าง (มี connection เปิดอยู่นาน) — บังคับออกหลัง 5 วิ
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

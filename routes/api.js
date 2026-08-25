@@ -2,6 +2,7 @@ const express = require('express');
 const guard = require('../middleware/guard');
 const dockerService = require('../services/docker');
 const metaService = require('../services/meta');
+const statsDb = require('../services/stats-db');
 const logger = require('../services/logger');
 
 const router = express.Router();
@@ -148,6 +149,40 @@ router.put('/bots/:name/meta', async (req, res) => {
     res.json(meta);
   } catch (err) {
     handleError(res, err, `Failed to update meta for ${req.params.name}`);
+  }
+});
+
+router.get('/bots/:name/stats/summary', (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    res.json(statsDb.getUptimeSummary(req.params.name));
+  } catch (err) {
+    handleError(res, err, `Failed to get stats summary for ${req.params.name}`);
+  }
+});
+
+router.get('/bots/:name/stats/samples', (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    let hours = parseInt(req.query.hours, 10);
+    if (!Number.isInteger(hours) || hours <= 0) hours = 24;
+    hours = Math.min(hours, 168);
+    const now = Math.floor(Date.now() / 1000);
+    res.json(statsDb.getSamples(req.params.name, now - hours * 3600, now));
+  } catch (err) {
+    handleError(res, err, `Failed to get samples for ${req.params.name}`);
+  }
+});
+
+router.get('/bots/:name/stats/daily', (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    let days = parseInt(req.query.days, 10);
+    if (!Number.isInteger(days) || days <= 0) days = 30;
+    days = Math.min(days, 90);
+    res.json(statsDb.getDailyStats(req.params.name, days));
+  } catch (err) {
+    handleError(res, err, `Failed to get daily stats for ${req.params.name}`);
   }
 });
 
