@@ -4,6 +4,7 @@ const net = require('net');
 const Docker = require('dockerode');
 const config = require('../config');
 const logger = require('./logger');
+const metaService = require('./meta');
 
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
@@ -144,6 +145,7 @@ async function listBots() {
         createdAt: new Date(c.Created * 1000).toISOString(),
         health,
         tunnel,
+        meta: metaService.readMeta(botName),
       };
     })
   );
@@ -215,7 +217,7 @@ async function getBotHealth(containerId) {
   return { ok: false, reason: lastErr ? lastErr.message : 'unreachable' };
 }
 
-async function createBot({ name, port, tunnelToken }) {
+async function createBot({ name, port, tunnelToken, companyName }) {
   if (!isValidBotName(name)) {
     throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
   }
@@ -254,6 +256,15 @@ async function createBot({ name, port, tunnelToken }) {
   const botDir = path.join(config.botsRoot, name);
   fs.mkdirSync(path.join(botDir, 'data'), { recursive: true });
   fs.mkdirSync(path.join(botDir, 'logs'), { recursive: true });
+
+  metaService.initMeta(name);
+  if (companyName) {
+    try {
+      metaService.writeMeta(name, { companyName });
+    } catch (err) {
+      logger.warn(`Bot "${name}" created but failed to save companyName:`, err.message);
+    }
+  }
 
   const envPath = path.join(botDir, '.env');
   if (!fs.existsSync(envPath)) {

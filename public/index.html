@@ -63,6 +63,12 @@ tbody tr:hover { background: var(--gray-50); }
 .monitors-count { font-weight: 600; }
 .monitors-count.na { color: var(--gray-400); font-weight: 400; }
 
+.customer-name { font-weight: 600; color: var(--navy); }
+.customer-empty { color: var(--gray-400); }
+.contract-badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-left: 6px; white-space: nowrap; vertical-align: middle; }
+.contract-warning { background: var(--amber-bg); color: #b45309; }
+.contract-expired { background: var(--red-bg); color: var(--red-d); }
+
 .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn-icon {
   border: none; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
@@ -81,6 +87,8 @@ tbody tr:hover { background: var(--gray-50); }
 .btn-log:hover:not(:disabled) { background: var(--gray-200); }
 .btn-tunnel-add { background: var(--teal-bg); color: var(--teal-d); }
 .btn-tunnel-add:hover:not(:disabled) { background: #d0f5ec; }
+.btn-edit-meta { background: var(--gray-100); color: var(--gray-800); }
+.btn-edit-meta:hover:not(:disabled) { background: var(--gray-200); }
 
 .empty-state { padding: 60px 24px; text-align: center; color: var(--gray-600); }
 
@@ -119,13 +127,15 @@ tbody tr:hover { background: var(--gray-50); }
 .field:last-child { margin-bottom: 0; }
 .field label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 5px; }
 .field-hint { font-size: 12px; color: var(--gray-600); margin-top: 5px; }
-.field input[type=text], .field input[type=number] {
+.field input[type=text], .field input[type=number], .field input[type=date], .field textarea {
   width: 100%; padding: 10px 13px; border: 1.5px solid var(--gray-200);
   border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
-.field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,184,148,.15); }
-.field input.error { border-color: var(--red); }
+.field textarea { resize: vertical; min-height: 70px; }
+.field input:focus, .field textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,184,148,.15); }
+.field input.error, .field textarea.error { border-color: var(--red); }
+.field-readonly { font-size: 13.5px; color: var(--gray-600); padding: 8px 0; }
 
 .checkbox-row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--gray-800); }
 .checkbox-row input { width: 16px; height: 16px; accent-color: var(--red); }
@@ -193,6 +203,7 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
     <table>
       <thead>
         <tr>
+          <th>ลูกค้า</th>
           <th>ชื่อ</th>
           <th>Port</th>
           <th>สถานะ</th>
@@ -232,6 +243,10 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
           <label for="newBotName">ชื่อ bot</label>
           <input type="text" id="newBotName" autocomplete="off" placeholder="เช่น netguard-office">
           <div class="field-hint">ใช้ได้เฉพาะ a-z, 0-9, - เท่านั้น (2-31 ตัวอักษร)</div>
+        </div>
+        <div class="field">
+          <label for="newBotCompany">ชื่อบริษัท <span style="font-weight:400;color:var(--gray-400);font-size:11px;">(optional)</span></label>
+          <input type="text" id="newBotCompany" autocomplete="off" placeholder="เช่น บริษัท ABC จำกัด">
         </div>
         <div class="field">
           <label for="newBotPort">Port</label>
@@ -295,6 +310,47 @@ details.guide-accordion code { background: var(--gray-100); padding: 1px 5px; bo
   </div>
 </div>
 
+<!-- Edit customer meta modal -->
+<div class="modal-overlay" id="editMetaModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="editMetaTitle">แก้ไขข้อมูลลูกค้า</h3>
+      <button class="modal-close" id="editMetaModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-error" id="editMetaError"></div>
+      <div class="field">
+        <label for="editCompanyName">ชื่อบริษัท</label>
+        <input type="text" id="editCompanyName" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="editContactName">ชื่อผู้ติดต่อ</label>
+        <input type="text" id="editContactName" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="editContactPhone">เบอร์ติดต่อ</label>
+        <input type="text" id="editContactPhone" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="editContractEnd">วันหมดสัญญา</label>
+        <input type="date" id="editContractEnd">
+      </div>
+      <div class="field">
+        <label for="editNote">โน้ต</label>
+        <textarea id="editNote" maxlength="500"></textarea>
+      </div>
+      <div class="field">
+        <label>วันที่สร้าง</label>
+        <div class="field-readonly" id="editCreatedAtDisplay">-</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="editMetaCancelBtn">ยกเลิก</button>
+      <button class="btn btn-teal" id="editMetaSubmitBtn">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- Remove confirm modal -->
 <div class="modal-overlay" id="removeModal">
   <div class="modal">
@@ -344,12 +400,25 @@ const attachTunnelToken = document.getElementById('attachTunnelToken');
 const attachTunnelSubmitBtn = document.getElementById('attachTunnelSubmitBtn');
 
 const newBotToken = document.getElementById('newBotToken');
+const newBotCompany = document.getElementById('newBotCompany');
+
+const editMetaModal = document.getElementById('editMetaModal');
+const editMetaTitle = document.getElementById('editMetaTitle');
+const editMetaError = document.getElementById('editMetaError');
+const editCompanyName = document.getElementById('editCompanyName');
+const editContactName = document.getElementById('editContactName');
+const editContactPhone = document.getElementById('editContactPhone');
+const editContractEnd = document.getElementById('editContractEnd');
+const editNote = document.getElementById('editNote');
+const editCreatedAtDisplay = document.getElementById('editCreatedAtDisplay');
+const editMetaSubmitBtn = document.getElementById('editMetaSubmitBtn');
 
 const toastContainer = document.getElementById('toastContainer');
 
 let botsCache = [];
 let removeTarget = null;
 let attachTunnelTarget = null;
+let editMetaTarget = null;
 let refreshTimer = null;
 
 function showToast(message, type) {
@@ -376,6 +445,34 @@ function tunnelInfo(tunnel) {
   if (!tunnel || !tunnel.exists) return { dot: 'other', label: 'ไม่มี' };
   if (tunnel.state === 'running') return { dot: 'running', label: 'เชื่อมต่อ' };
   return { dot: 'stopped', label: 'หยุด' };
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
+function contractBadge(contractEnd) {
+  const days = daysUntil(contractEnd);
+  if (days === null) return '';
+  if (days < 0) return '<span class="contract-badge contract-expired">&#9888; หมดสัญญาแล้ว</span>';
+  if (days < 30) return '<span class="contract-badge contract-warning">&#9888; ใกล้หมดสัญญา</span>';
+  return '';
+}
+
+function customerCell(meta) {
+  meta = meta || {};
+  if (!meta.companyName) {
+    return '<span class="customer-empty">&mdash;</span>';
+  }
+  const tooltipParts = [meta.contactName, meta.contactPhone].filter(Boolean);
+  const tooltip = tooltipParts.join(' ');
+  const titleAttr = tooltip ? ` title="${escapeHtml(tooltip)}"` : '';
+  return `<span class="customer-name"${titleAttr}>${escapeHtml(meta.companyName)}</span>${contractBadge(meta.contractEnd)}`;
 }
 
 function escapeHtml(str) {
@@ -425,6 +522,7 @@ async function loadBots() {
     const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
     return `
     <tr data-id="${escapeHtml(bot.id)}">
+      <td>${customerCell(bot.meta)}</td>
       <td class="bot-name">${escapeHtml(name)}</td>
       <td>${bot.port ? `<a class="port-link" href="http://localhost:${bot.port}/setup" target="_blank" rel="noopener">${bot.port}</a>` : '-'}</td>
       <td>
@@ -446,6 +544,7 @@ async function loadBots() {
           ${running ? `<button class="btn-icon btn-stop" data-action="stop" data-id="${escapeHtml(bot.id)}">&#9208; Stop</button>` : ''}
           <button class="btn-icon btn-restart" data-action="restart" data-id="${escapeHtml(bot.id)}">&#8635; Restart</button>
           <button class="btn-icon btn-log" data-action="log" data-id="${escapeHtml(bot.id)}" data-name="${escapeHtml(name)}">ดู Log</button>
+          <button class="btn-icon btn-edit-meta" data-action="edit-meta" data-name="${escapeHtml(name)}">&#9998; แก้ไขข้อมูล</button>
           ${!hasTunnel ? `<button class="btn-icon btn-tunnel-add" data-action="tunnel-add" data-name="${escapeHtml(name)}">+ Tunnel</button>` : ''}
           ${hasTunnel ? `<button class="btn-icon btn-log" data-action="tunnel-log" data-name="${escapeHtml(name)}">Tunnel Log</button>` : ''}
           ${hasTunnel ? `<button class="btn-icon btn-remove" data-action="tunnel-remove" data-name="${escapeHtml(name)}">ลบ Tunnel</button>` : ''}
@@ -483,6 +582,7 @@ function onActionClick(btn) {
   const name = btn.dataset.name;
 
   if (action === 'log') return openLogModal(`Log — ${name}`, `/api/bots/${id}/logs`);
+  if (action === 'edit-meta') return openEditMetaModal(name);
   if (action === 'remove') return openRemoveModal(id, name);
   if (action === 'tunnel-add') return openAttachTunnelModal(name);
   if (action === 'tunnel-log') return openLogModal(`Tunnel Log — ${name}`, `/api/bots/${name}/tunnel/logs`);
@@ -558,6 +658,7 @@ function openCreateModal() {
   newBotPort.classList.remove('error');
   newBotToken.value = '';
   newBotToken.classList.remove('error');
+  newBotCompany.value = '';
   createModal.classList.add('show');
   newBotName.focus();
 }
@@ -584,6 +685,7 @@ document.getElementById('createSubmitBtn').addEventListener('click', async () =>
   const name = newBotName.value.trim();
   const port = parseInt(newBotPort.value, 10);
   const tunnelToken = newBotToken.value.trim();
+  const companyName = newBotCompany.value.trim();
 
   if (!NAME_RE.test(name)) {
     createError.textContent = 'ชื่อ bot ไม่ถูกต้อง — ใช้ได้เฉพาะ a-z, 0-9, - (2-31 ตัวอักษร)';
@@ -610,7 +712,7 @@ document.getElementById('createSubmitBtn').addEventListener('click', async () =>
     await fetchJson('/api/bots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, port, tunnelToken: tunnelToken || undefined }),
+      body: JSON.stringify({ name, port, tunnelToken: tunnelToken || undefined, companyName: companyName || undefined }),
     });
     createModal.classList.remove('show');
     showToast(`สร้าง bot "${name}" สำเร็จ`, 'success');
@@ -671,6 +773,68 @@ attachTunnelSubmitBtn.addEventListener('click', async () => {
   } finally {
     attachTunnelSubmitBtn.disabled = false;
     attachTunnelSubmitBtn.textContent = 'เพิ่ม Tunnel';
+  }
+});
+
+// ── Edit customer meta modal ──
+async function openEditMetaModal(name) {
+  editMetaTarget = name;
+  editMetaTitle.textContent = `แก้ไขข้อมูลลูกค้า — ${name}`;
+  editMetaError.classList.remove('show');
+  editCompanyName.value = '';
+  editContactName.value = '';
+  editContactPhone.value = '';
+  editContractEnd.value = '';
+  editNote.value = '';
+  editCreatedAtDisplay.textContent = '-';
+  editMetaModal.classList.add('show');
+  try {
+    const meta = await fetchJson(`/api/bots/${name}/meta`);
+    editCompanyName.value = meta.companyName || '';
+    editContactName.value = meta.contactName || '';
+    editContactPhone.value = meta.contactPhone || '';
+    editContractEnd.value = meta.contractEnd || '';
+    editNote.value = meta.note || '';
+    editCreatedAtDisplay.textContent = meta.createdAt ? new Date(meta.createdAt).toLocaleString('th-TH') : '-';
+  } catch (err) {
+    editMetaError.textContent = `โหลดข้อมูลไม่สำเร็จ: ${err.message}`;
+    editMetaError.classList.add('show');
+  }
+}
+
+document.getElementById('editMetaModalClose').addEventListener('click', () => editMetaModal.classList.remove('show'));
+document.getElementById('editMetaCancelBtn').addEventListener('click', () => editMetaModal.classList.remove('show'));
+editMetaModal.addEventListener('click', (e) => {
+  if (e.target === editMetaModal) editMetaModal.classList.remove('show');
+});
+
+editMetaSubmitBtn.addEventListener('click', async () => {
+  if (!editMetaTarget) return;
+  editMetaError.classList.remove('show');
+
+  editMetaSubmitBtn.disabled = true;
+  editMetaSubmitBtn.textContent = 'กำลังบันทึก...';
+  try {
+    await fetchJson(`/api/bots/${editMetaTarget}/meta`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName: editCompanyName.value.trim(),
+        contactName: editContactName.value.trim(),
+        contactPhone: editContactPhone.value.trim(),
+        contractEnd: editContractEnd.value.trim(),
+        note: editNote.value.trim(),
+      }),
+    });
+    editMetaModal.classList.remove('show');
+    showToast(`บันทึกข้อมูลลูกค้า "${editMetaTarget}" สำเร็จ`, 'success');
+    loadBots();
+  } catch (err) {
+    editMetaError.textContent = err.message;
+    editMetaError.classList.add('show');
+  } finally {
+    editMetaSubmitBtn.disabled = false;
+    editMetaSubmitBtn.textContent = 'บันทึก';
   }
 });
 

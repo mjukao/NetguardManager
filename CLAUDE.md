@@ -17,6 +17,13 @@ Dashboard จัดการบอทหลายตัวบน server เด�
 - ชื่อ container: netguard-<name> และ netguard-<name>-cloudflared
 - Label: netguard.managed=true, netguard.botname=<name>,
   netguard.role=tunnel (เฉพาะ cloudflared)
+- ไฟล์ bots/<name>/meta.json เก็บข้อมูลลูกค้า (ข้างๆ .env):
+  {
+    "companyName": "...", "contactName": "...", "contactPhone": "...",
+    "contractEnd": "YYYY-MM-DD", "note": "...",
+    "createdAt": "ISO string", "updatedAt": "ISO string"
+  }
+  ทุก field optional ยกเว้น createdAt, เขียนแบบ atomic (.tmp แล้ว rename)
 
 ## ความปลอดภัย
 - docker.sock = สิทธิ์เทียบเท่า root บน host
@@ -31,18 +38,19 @@ Dashboard จัดการบอทหลายตัวบน server เด�
 เฟส 1 (ccbd46e): scaffold + guard + auth + read-only API + Dashboard UI
 เฟส 2 (21a0ce0): create/start/stop/restart/remove + shared network
 เฟส 3 (dc208b3): cloudflared ต่อ bot + attach/detach + Tunnel column
+เฟส 4: meta.json เก็บข้อมูลลูกค้าต่อ bot + คอลัมน์ลูกค้า + badge เตือนสัญญา
 
 ยังไม่ทำ:
-- meta.json เก็บข้อมูลลูกค้า (ชื่อบริษัท ผู้ติดต่อ วันหมดสัญญา)
 - SQLite เก็บสถิติ uptime/alert ย้อนหลัง
 - ตั้ง MANAGER_PASSWORD_HASH จริง (ตอนนี้ยังเป็น default admin)
-- push ขึ้น GitHub (ยังไม่มี remote)
 - ยังไม่ทดสอบบน Linux server จริง
 
 ## หลักการตัดสินใจ
 - Docker เป็น source of truth — ไม่เก็บ state ซ้ำใน DB
   จะใส่ DB เมื่อต้องเก็บสถิติย้อนหลังเท่านั้น
 - ข้อมูลลูกค้าใช้ meta.json ข้างๆ .env ก็พอ ไม่ต้อง DB
+- ข้อมูลไม่โตตามเวลา (1 ต่อ 1 กับ bot, เปลี่ยนไม่บ่อย) → เก็บเป็นไฟล์
+  ข้อมูลโตตามเวลา (log, สถิติย้อนหลัง, เหตุการณ์สะสม) → ต้องใช้ DB
 
 ## บทเรียนที่เจอมาแล้ว (อย่าพลาดซ้ำ)
 - localhost ใน container ของ manager ≠ host

@@ -1,6 +1,7 @@
 const express = require('express');
 const guard = require('../middleware/guard');
 const dockerService = require('../services/docker');
+const metaService = require('../services/meta');
 const logger = require('../services/logger');
 
 const router = express.Router();
@@ -47,8 +48,8 @@ router.get('/bots/:id/health', async (req, res) => {
 
 router.post('/bots', async (req, res) => {
   try {
-    const { name, port, tunnelToken } = req.body || {};
-    const bot = await dockerService.createBot({ name, port, tunnelToken });
+    const { name, port, tunnelToken, companyName } = req.body || {};
+    const bot = await dockerService.createBot({ name, port, tunnelToken, companyName });
     res.status(201).json(bot);
   } catch (err) {
     handleError(res, err, 'Failed to create bot');
@@ -127,6 +128,26 @@ router.delete('/bots/:name/tunnel', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     handleError(res, err, `Failed to detach tunnel for ${req.params.name}`);
+  }
+});
+
+router.get('/bots/:name/meta', async (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    const meta = metaService.readMeta(req.params.name);
+    res.json(meta);
+  } catch (err) {
+    handleError(res, err, `Failed to read meta for ${req.params.name}`);
+  }
+});
+
+router.put('/bots/:name/meta', async (req, res) => {
+  if (!requireValidBotName(req, res)) return;
+  try {
+    const meta = metaService.writeMeta(req.params.name, req.body || {});
+    res.json(meta);
+  } catch (err) {
+    handleError(res, err, `Failed to update meta for ${req.params.name}`);
   }
 });
 
