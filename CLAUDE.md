@@ -3,7 +3,7 @@
 ## ภาพรวม
 Dashboard จัดการบอทหลายตัวบน server เดียว
 - คุม container ของ image phattadol358/netguard-ai:latest
-- โปรเจกต์ bot อยู่ที่ D:\Project Code\LineBot (คนละ repo)
+- โปรเจกต์ bot อยู่ที่ D:\Project Code\RealCode\LineBot (คนละ repo)
 - 1 ลูกค้า = 1 bot container + 1 cloudflared container
 
 ## Architecture
@@ -106,7 +106,7 @@ Dashboard จัดการบอทหลายตัวบน server เด�
   แม้ manager ไม่ได้เป็นคนสร้าง — ไม่ crash แต่ควรรู้ไว้
 
 ## คำสั่งที่ใช้บ่อย
-cd "D:\Project Code\NetguardManager"
+cd "D:\Project Code\RealCode\NetguardManager"
 docker compose up -d --build
 docker compose ps
 docker compose logs manager --tail 30
