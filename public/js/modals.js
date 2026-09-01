@@ -26,14 +26,17 @@ function toggleKebab(btn) {
   const rect = btn.getBoundingClientRect();
 
   let top = rect.bottom + 4;
+  let openUpward = false;
   if (top + KEBAB_MENU_EST_HEIGHT > window.innerHeight) {
     top = Math.max(4, rect.top - KEBAB_MENU_EST_HEIGHT - 4); // ล้นขอบล่าง → เปิดขึ้นบนแทน
+    openUpward = true;
   }
   let left = rect.right - KEBAB_MENU_WIDTH;
   left = Math.max(4, Math.min(left, window.innerWidth - KEBAB_MENU_WIDTH - 4));
 
   menu.style.top = `${top}px`;
   menu.style.left = `${left}px`;
+  menu.style.transformOrigin = openUpward ? 'bottom right' : 'top right';
   menu.classList.add('show');
   btn.setAttribute('aria-expanded', 'true');
 }
@@ -364,7 +367,7 @@ function renderStatsModal(summary, daily, samples) {
               <td><span class="state-pill"><span class="state-dot ${s.state}"></span>${STATE_LABEL[s.state] || s.state}</span></td>
               <td>${s.problems_total ?? '—'}</td>
             </tr>
-          `).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gray-400);">ไม่มีข้อมูล</td></tr>'}
+          `).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text-dim);">ไม่มีข้อมูล</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -382,8 +385,8 @@ function renderStatsModal(summary, daily, samples) {
         datasets: [{
           label: 'Uptime %',
           data: daily.map((d) => d.uptime_pct),
-          borderColor: '#00b894',
-          backgroundColor: 'rgba(0,184,148,.12)',
+          borderColor: '#00d4a0',
+          backgroundColor: 'rgba(0,212,160,.12)',
           fill: true,
           tension: 0.25,
           spanGaps: true,
@@ -391,7 +394,10 @@ function renderStatsModal(summary, daily, samples) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8b96a8' } },
+          y: { min: 0, max: 100, ticks: { color: '#8b96a8', callback: (v) => v + '%' }, grid: { color: 'rgba(255,255,255,.05)' } },
+        },
         plugins: { legend: { display: false } },
       },
     });
@@ -406,8 +412,8 @@ function renderStatsModal(summary, daily, samples) {
         datasets: [{
           label: 'Problems',
           data: samples.map((s) => s.problems_total),
-          borderColor: '#1e2a3a',
-          backgroundColor: 'rgba(30,42,58,.1)',
+          borderColor: '#7c6cf6',
+          backgroundColor: 'rgba(124,108,246,.12)',
           fill: true,
           tension: 0.25,
           spanGaps: true,
@@ -415,7 +421,10 @@ function renderStatsModal(summary, daily, samples) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8b96a8' } },
+          y: { beginAtZero: true, ticks: { color: '#8b96a8', precision: 0 }, grid: { color: 'rgba(255,255,255,.05)' } },
+        },
         plugins: { legend: { display: false } },
       },
     });

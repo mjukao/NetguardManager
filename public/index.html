@@ -10,69 +10,104 @@
 <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
-<header>
-  <h1><span class="dot"></span>NetGuard Manager</h1>
-  <div class="actions">
-    <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="ค้นหา bot, บริษัท, ผู้ติดต่อ..." autocomplete="off">
-      <button type="button" class="search-clear" id="searchClearBtn" title="ล้างคำค้น" hidden>&times;</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="dot"></span>
+    <span class="sidebar-logo-text">NetGuard</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="#" aria-current="page">
+      <span class="nav-icon">&#9638;</span><span class="nav-item-text">Dashboard</span>
+    </a>
+    <button class="nav-item disabled" type="button" disabled title="ยังไม่พร้อมใช้งาน">
+      <span class="nav-icon">&#129302;</span><span class="nav-item-text">Bots</span>
+    </button>
+    <button class="nav-item disabled" type="button" disabled title="ยังไม่พร้อมใช้งาน">
+      <span class="nav-icon">&#128200;</span><span class="nav-item-text">Statistics</span>
+    </button>
+    <button class="nav-item disabled" type="button" disabled title="ยังไม่พร้อมใช้งาน">
+      <span class="nav-icon">&#9881;</span><span class="nav-item-text">Settings</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">Admin</div>
+    <button class="btn btn-ghost" id="logoutBtn"><span class="btn-icon-glyph">&#9211;</span><span class="btn-text">ออกจากระบบ</span></button>
+  </div>
+</aside>
+
+<div class="main-area">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <button type="button" class="hamburger-btn" id="hamburgerBtn" aria-label="เปิดเมนู" aria-expanded="false">&#9776;</button>
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="ค้นหา bot, บริษัท, ผู้ติดต่อ..." autocomplete="off">
+          <button type="button" class="search-clear" id="searchClearBtn" title="ล้างคำค้น" hidden>&times;</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="pullImageBtn">อัปเดต Image</button>
+        <button class="btn btn-teal" id="openCreateBtn">+ สร้าง Bot ใหม่</button>
+      </div>
     </div>
-    <button class="btn btn-ghost" id="pullImageBtn">อัปเดต Image</button>
-    <button class="btn btn-teal" id="openCreateBtn">+ สร้าง Bot ใหม่</button>
-    <button class="btn btn-ghost" id="logoutBtn">ออกจากระบบ</button>
-  </div>
-</header>
-
-<div class="main">
-  <div class="summary-bar" id="summaryBar">
-    <button type="button" class="summary-card" id="cardTotal" data-filter="">
-      <div class="summary-label">Bot ทั้งหมด</div>
-      <div class="summary-number" id="countTotal">0</div>
-    </button>
-    <button type="button" class="summary-card" id="cardHealthy" data-filter="healthy">
-      <div class="summary-label">ทำงานปกติ</div>
-      <div class="summary-number" id="countHealthy">0</div>
-    </button>
-    <button type="button" class="summary-card" id="cardProblem" data-filter="problem">
-      <div class="summary-label">มีปัญหา</div>
-      <div class="summary-number" id="countProblem">0</div>
-    </button>
-    <button type="button" class="summary-card" id="cardContract" data-filter="contract">
-      <div class="summary-label">สัญญาใกล้หมด</div>
-      <div class="summary-number" id="countContract">0</div>
-    </button>
   </div>
 
-  <div class="toolbar">
-    <h2>Bot ทั้งหมด</h2>
-    <div class="toolbar-refresh">
-      <button type="button" class="btn-refresh-icon" id="refreshBtn" title="รีเฟรชตอนนี้" aria-label="รีเฟรชตอนนี้">&#8635;</button>
-      <span class="refresh-note" id="refreshNote">รีเฟรชอัตโนมัติทุก 10 วินาที</span>
+  <div class="content">
+    <div class="summary-bar" id="summaryBar">
+      <button type="button" class="summary-card" id="cardTotal" data-filter="">
+        <div class="summary-label">Bot ทั้งหมด</div>
+        <div class="summary-number skeleton-num" id="countTotal">0</div>
+      </button>
+      <button type="button" class="summary-card" id="cardHealthy" data-filter="healthy">
+        <div class="summary-label">ทำงานปกติ</div>
+        <div class="summary-number skeleton-num" id="countHealthy">0</div>
+      </button>
+      <button type="button" class="summary-card" id="cardProblem" data-filter="problem">
+        <div class="summary-label">มีปัญหา</div>
+        <div class="summary-number skeleton-num" id="countProblem">0</div>
+      </button>
+      <button type="button" class="summary-card" id="cardContract" data-filter="contract">
+        <div class="summary-label">สัญญาใกล้หมด</div>
+        <div class="summary-number skeleton-num" id="countContract">0</div>
+      </button>
     </div>
-  </div>
 
-  <div class="card" id="botsCard">
-    <table>
-      <thead>
-        <tr>
-          <th>ลูกค้า / Bot</th>
-          <th>สถานะ</th>
-          <th>Uptime 30 วัน</th>
-          <th class="col-info">ข้อมูล</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="botTableBody"></tbody>
-    </table>
-  </div>
+    <div class="toolbar">
+      <h2>Bot ทั้งหมด</h2>
+      <div class="toolbar-refresh">
+        <button type="button" class="btn-refresh-icon" id="refreshBtn" title="รีเฟรชตอนนี้" aria-label="รีเฟรชตอนนี้">&#8635;</button>
+        <span class="refresh-note" id="refreshNote">รีเฟรชอัตโนมัติทุก 10 วินาที</span>
+      </div>
+    </div>
 
-  <div class="empty-state" id="emptyStateNone" style="display:none;">
-    <p>ยังไม่มี Bot</p>
-    <button class="btn btn-teal" id="emptyCreateBtn">+ สร้าง Bot ใหม่ เพื่อเริ่มต้น</button>
-  </div>
-  <div class="empty-state" id="emptyStateFiltered" style="display:none;">
-    <p>ไม่พบ Bot ที่ตรงกับเงื่อนไข</p>
-    <button class="btn btn-secondary" id="clearFiltersBtn">ล้างตัวกรอง</button>
+    <div class="card" id="botsCard">
+      <table>
+        <thead>
+          <tr>
+            <th>ลูกค้า / Bot</th>
+            <th>สถานะ</th>
+            <th>Uptime 30 วัน</th>
+            <th class="col-info">ข้อมูล</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="botTableBody">
+          <tr class="skeleton-row"><td colspan="5"><div class="skeleton-bar"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="5"><div class="skeleton-bar"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="5"><div class="skeleton-bar"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty-state" id="emptyStateNone" style="display:none;">
+      <p>ยังไม่มี Bot</p>
+      <button class="btn btn-teal" id="emptyCreateBtn">+ สร้าง Bot ใหม่ เพื่อเริ่มต้น</button>
+    </div>
+    <div class="empty-state" id="emptyStateFiltered" style="display:none;">
+      <p>ไม่พบ Bot ที่ตรงกับเงื่อนไข</p>
+      <button class="btn btn-secondary" id="clearFiltersBtn">ล้างตัวกรอง</button>
+    </div>
   </div>
 </div>
 
@@ -103,7 +138,7 @@
           <div class="field-hint">ใช้ได้เฉพาะ a-z, 0-9, - เท่านั้น (2-31 ตัวอักษร)</div>
         </div>
         <div class="field">
-          <label for="newBotCompany">ชื่อบริษัท <span style="font-weight:400;color:var(--gray-400);font-size:11px;">(optional)</span></label>
+          <label for="newBotCompany">ชื่อบริษัท <span style="font-weight:400;color:var(--text-dim);font-size:11px;">(optional)</span></label>
           <input type="text" id="newBotCompany" autocomplete="off" placeholder="เช่น บริษัท ABC จำกัด">
         </div>
         <div class="field">
@@ -112,7 +147,7 @@
           <div class="field-hint">แนะนำ port ว่างถัดไปให้อัตโนมัติ (แก้ไขได้)</div>
         </div>
         <div class="field">
-          <label for="newBotToken">Cloudflare Tunnel Token <span style="font-weight:400;color:var(--gray-400);font-size:11px;">(optional)</span></label>
+          <label for="newBotToken">Cloudflare Tunnel Token <span style="font-weight:400;color:var(--text-dim);font-size:11px;">(optional)</span></label>
           <input type="text" id="newBotToken" autocomplete="off" placeholder="เว้นว่างได้ ถ้ายังไม่มี tunnel">
           <div class="field-hint">เว้นว่างได้ ถ้ายังไม่มี tunnel — เพิ่มทีหลังได้</div>
           <details class="guide-accordion">

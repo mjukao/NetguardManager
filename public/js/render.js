@@ -1,9 +1,64 @@
 function showToast(message, type) {
   const el = document.createElement('div');
   el.className = `toast ${type || 'info'}`;
-  el.textContent = message;
+
+  const msg = document.createElement('span');
+  msg.className = 'toast-msg';
+  msg.textContent = message;
+  el.appendChild(msg);
+
+  const progress = document.createElement('div');
+  progress.className = 'toast-progress';
+  el.appendChild(progress);
+
   toastContainer.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
+
+  setTimeout(() => {
+    el.classList.add('toast-out');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }, 4000);
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function easeOutQuad(t) {
+  return t * (2 - t);
+}
+
+let numAnimSeq = 0;
+function animateNumber(el, from, to, duration) {
+  if (from === to) return;
+  if (prefersReducedMotion()) { el.textContent = to; return; }
+  duration = duration || 500;
+  const myId = ++numAnimSeq;
+  el._numAnimId = myId;
+  const startTime = performance.now();
+  function tick(now) {
+    if (el._numAnimId !== myId) return;
+    const progress = Math.min((now - startTime) / duration, 1);
+    el.textContent = Math.round(from + (to - from) * easeOutQuad(progress));
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function setSummaryNumber(el, newValue) {
+  el.classList.remove('skeleton-num');
+  const oldValue = Number(el.dataset.value);
+  el.dataset.value = newValue;
+  if (Number.isNaN(oldValue)) { el.textContent = newValue; return; }
+  animateNumber(el, oldValue, newValue, 500);
+}
+
+function flashSummaryCards() {
+  document.querySelectorAll('.summary-card').forEach((card) => {
+    card.classList.remove('flash-update');
+    void card.offsetWidth; // restart animation ถ้า flash ถี่กว่ารอบก่อนจบ
+    card.classList.add('flash-update');
+    card.addEventListener('animationend', () => card.classList.remove('flash-update'), { once: true });
+  });
 }
 
 function statusClass(state) {
@@ -101,10 +156,10 @@ function botDisplayName(bot) {
 }
 
 function renderSummaryBar(bots) {
-  document.getElementById('countTotal').textContent = bots.length;
-  document.getElementById('countHealthy').textContent = bots.filter((b) => botStatus(b) === 'healthy').length;
-  document.getElementById('countProblem').textContent = bots.filter((b) => botStatus(b) === 'problem').length;
-  document.getElementById('countContract').textContent = bots.filter(contractSoon).length;
+  setSummaryNumber(document.getElementById('countTotal'), bots.length);
+  setSummaryNumber(document.getElementById('countHealthy'), bots.filter((b) => botStatus(b) === 'healthy').length);
+  setSummaryNumber(document.getElementById('countProblem'), bots.filter((b) => botStatus(b) === 'problem').length);
+  setSummaryNumber(document.getElementById('countContract'), bots.filter(contractSoon).length);
 }
 
 function applyFilters(bots) {
@@ -125,7 +180,7 @@ function applyFilters(bots) {
   return list;
 }
 
-function rowTemplate(bot) {
+function rowTemplate(bot, animIndex) {
   const running = bot.state === 'running';
   const name = botDisplayName(bot);
   const hasTunnel = !!(bot.tunnel && bot.tunnel.exists);
@@ -139,8 +194,12 @@ function rowTemplate(bot) {
     ? `<button class="kebab-item" role="menuitem" data-action="stop" data-id="${id}">&#9208; Stop</button>`
     : `<button class="kebab-item" role="menuitem" data-action="start" data-id="${id}">&#9654; Start</button>`;
 
+  const shouldAnimateRow = animIndex !== undefined && animIndex !== -1;
+  const rowClass = shouldAnimateRow ? ' row-in' : '';
+  const rowStyle = (shouldAnimateRow && animIndex < 10) ? ` style="--i:${animIndex}"` : '';
+
   return `
-    <tr data-id="${id}" data-name="${n}" class="clickable-row" tabindex="0" role="button" aria-label="ดูสถิติของ ${n}">
+    <tr data-id="${id}" data-name="${n}" class="clickable-row${rowClass}" tabindex="0" role="button" aria-label="ดูสถิติของ ${n}"${rowStyle}>
       <td>${botCell(bot, name)}</td>
       <td>
         <span class="status">
@@ -195,7 +254,13 @@ function renderTable() {
   emptyStateNone.style.display = 'none';
   emptyStateFiltered.style.display = 'none';
 
-  tbody.innerHTML = filtered.map(rowTemplate).join('');
+  // เล่น row-in animation เฉพาะตอนชุด bot ที่แสดงเปลี่ยนไปจริง (bot ถูกเพิ่ม/ลบ/filter เปลี่ยน)
+  // ไม่เล่นซ้ำทุก auto-refresh (10 วิ) ที่ชุดเดิม เพราะจะกระพริบน่ารำคาญ
+  const ids = filtered.map((b) => b.id).join(',');
+  const shouldAnimate = ids !== lastRenderedRowIds;
+  lastRenderedRowIds = ids;
+
+  tbody.innerHTML = filtered.map((bot, i) => rowTemplate(bot, shouldAnimate ? i : -1)).join('');
   filtered.forEach(loadBotUptime);
 }
 

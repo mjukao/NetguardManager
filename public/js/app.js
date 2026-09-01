@@ -50,6 +50,10 @@ const statsModalBody = document.getElementById('statsModalBody');
 
 const toastContainer = document.getElementById('toastContainer');
 
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+
 let botsCache = [];
 let uptimeChart = null;
 let problemsChart = null;
@@ -61,6 +65,7 @@ let noteTimer = null;
 let searchQuery = '';
 let activeCardFilter = '';
 let lastRefreshedAt = null;
+let lastRenderedRowIds = null;
 
 // ── Summary card filter (toggle) ──
 document.querySelectorAll('.summary-card').forEach((card) => {
@@ -104,6 +109,7 @@ refreshBtn.addEventListener('click', async () => {
   refreshBtn.disabled = true;
   try {
     await loadBots();
+    flashSummaryCards();
   } finally {
     refreshBtn.classList.remove('spinning');
     refreshBtn.disabled = false;
@@ -198,6 +204,26 @@ statsModal.addEventListener('click', (e) => {
 // ── Update image / logout ──
 document.getElementById('pullImageBtn').addEventListener('click', (e) => submitPullImage(e.currentTarget));
 document.getElementById('logoutBtn').addEventListener('click', submitLogout);
+
+// ── Mobile sidebar (hamburger + overlay + Escape) ──
+function openSidebar() {
+  sidebar.classList.add('show');
+  sidebarOverlay.classList.add('show');
+  hamburgerBtn.setAttribute('aria-expanded', 'true');
+}
+function closeSidebar() {
+  sidebar.classList.remove('show');
+  sidebarOverlay.classList.remove('show');
+  hamburgerBtn.setAttribute('aria-expanded', 'false');
+}
+hamburgerBtn.addEventListener('click', () => {
+  if (sidebar.classList.contains('show')) closeSidebar();
+  else openSidebar();
+});
+sidebarOverlay.addEventListener('click', closeSidebar);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sidebar.classList.contains('show')) closeSidebar();
+});
 
 // ── Init ──
 loadBots();
