@@ -111,16 +111,66 @@ async function loadBots() {
   updateRefreshNote();
   renderSummaryBar(bots);
   renderTable();
+
+  // sparkline ใช้ daily stats ซึ่งเปลี่ยนไม่บ่อย — ไม่ต้อง await ให้บล็อก render หลัก
+  // ตัว refreshSparklineData เองมี cache กันไม่ให้ query ซ้ำถี่กว่า 5 นาที
+  refreshSparklineData(bots);
 }
 
-async function loadBotUptime(bot) {
+async function loadBotUptime(bot, animate) {
   const name = botDisplayName(bot);
   const cell = tbody.querySelector(`tr[data-id="${bot.id}"] .uptime-cell`);
   if (!cell) return;
   try {
     const summary = await apiGetStatsSummary(name);
-    cell.innerHTML = uptimeCell(summary.last30d);
+    cell.innerHTML = uptimeCell(summary.last30d, animate);
   } catch (err) {
-    cell.innerHTML = uptimeCell(null);
+    cell.innerHTML = uptimeCell(null, animate);
   }
+  if (animate) animateUptimeBar(cell);
+}
+
+// รัน async fn บน items ทีละไม่เกิน `limit` ตัวพร้อมกัน (ไม่ต้องพึ่ง library)
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+}
+
+const SPARKLINE_COLORS = { total: '#00d4a0', healthy: '#2ecc8f', problem: '#ff5c5c' };
+const SPARKLINE_REFRESH_MS = 5 * 60 * 1000;
+
+async function refreshSparklineData(bots, force) {
+  const now = Date.now();
+  if (!force && now - sparklineCacheAt < SPARKLINE_REFRESH_MS) return;
+  sparklineCacheAt = now;
+
+  if (!bots.length) {
+    renderSparkline('sparkTotal', [], SPARKLINE_COLORS.total);
+    renderSparkline('sparkHealthy', [], SPARKLINE_COLORS.healthy);
+    renderSparkline('sparkProblem', [], SPARKLINE_COLORS.problem);
+    return;
+  }
+
+  const names = bots.map(botDisplayName);
+  const dailyResults = await mapWithConcurrency(names, 5, async (name) => {
+    try {
+      return { name, rows: await apiGetStatsDaily(name, 7) };
+    } catch (err) {
+      return { name, rows: [] };
+    }
+  });
+
+  const series = buildSparklineSeries(dailyResults);
+  renderSparkline('sparkTotal', series.totalSeries, SPARKLINE_COLORS.total);
+  renderSparkline('sparkHealthy', series.healthySeries, SPARKLINE_COLORS.healthy);
+  renderSparkline('sparkProblem', series.problemSeries, SPARKLINE_COLORS.problem);
 }

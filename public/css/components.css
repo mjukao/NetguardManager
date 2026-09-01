@@ -83,6 +83,19 @@ tbody tr.row-in { animation: row-in .3s ease-out backwards; animation-delay: cal
 .uptime-bad  { color: var(--red); }
 .uptime-na   { color: var(--text-dim); font-weight: 400; }
 
+.uptime-cell-inner { display: flex; flex-direction: column; }
+.uptime-bar {
+  height: 3px; width: 70px; margin-top: 5px;
+  background: var(--border); border-radius: 2px; overflow: hidden;
+}
+.uptime-bar-fill {
+  height: 100%; border-radius: 2px;
+  transition: width .4s ease-out;
+}
+.uptime-bar-fill.fill-good { background: var(--green); }
+.uptime-bar-fill.fill-warn { background: var(--amber); }
+.uptime-bar-fill.fill-bad  { background: var(--red); }
+
 .clickable-row { cursor: pointer; }
 
 /* ── Stats modal ── */

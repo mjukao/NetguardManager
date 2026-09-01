@@ -66,6 +66,8 @@ let searchQuery = '';
 let activeCardFilter = '';
 let lastRefreshedAt = null;
 let lastRenderedRowIds = null;
+let sparklineCharts = {};
+let sparklineCacheAt = 0;
 
 // ── Summary card filter (toggle) ──
 document.querySelectorAll('.summary-card').forEach((card) => {

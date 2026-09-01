@@ -111,10 +111,33 @@ function contractBadge(contractEnd) {
   return '';
 }
 
-function uptimeCell(pct) {
+function uptimeCell(pct, animate) {
   if (pct === null || pct === undefined) return '<span class="uptime-value uptime-na">&mdash;</span>';
-  const cls = pct >= 99.5 ? 'uptime-good' : pct >= 95 ? 'uptime-warn' : 'uptime-bad';
-  return `<span class="uptime-value ${cls}">${pct.toFixed(1)}%</span>`;
+  let cls, fillCls;
+  if (pct >= 99.5) { cls = 'uptime-good'; fillCls = 'fill-good'; }
+  else if (pct >= 95) { cls = 'uptime-warn'; fillCls = 'fill-warn'; }
+  else { cls = 'uptime-bad'; fillCls = 'fill-bad'; }
+  const target = Math.min(100, Math.max(0, pct));
+  const widthStyle = animate ? 'width:0%' : `width:${target}%`;
+  return `
+    <div class="uptime-cell-inner">
+      <span class="uptime-value ${cls}">${pct.toFixed(1)}%</span>
+      <div class="uptime-bar"><div class="uptime-bar-fill ${fillCls}" style="${widthStyle}" data-target-width="${target}"></div></div>
+    </div>
+  `;
+}
+
+// เรียกหลัง insert DOM แล้วเท่านั้น — ให้ browser paint ที่ width:0% ไปเฟรมนึงก่อน
+// แล้วค่อยเปลี่ยนเป็นค่าจริง ไม่งั้น transition จะไม่ทำงาน (รวบเป็นเฟรมเดียว)
+function animateUptimeBar(cell) {
+  const fill = cell.querySelector('.uptime-bar-fill[data-target-width]');
+  if (!fill) return;
+  const target = fill.dataset.targetWidth;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.width = `${target}%`;
+    });
+  });
 }
 
 function botCell(bot, name) {
@@ -261,7 +284,91 @@ function renderTable() {
   lastRenderedRowIds = ids;
 
   tbody.innerHTML = filtered.map((bot, i) => rowTemplate(bot, shouldAnimate ? i : -1)).join('');
-  filtered.forEach(loadBotUptime);
+  filtered.forEach((bot) => loadBotUptime(bot, shouldAnimate));
+}
+
+// ── Summary card sparklines (7 วันล่าสุด, รวมข้อมูลฝั่ง client จาก daily stats ของทุก bot) ──
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// dailyResults: [{ name, rows }] — rows คือผลจาก /stats/daily?days=7 ของแต่ละ bot
+// รวมเป็น series ต่อวัน โดยใช้ union ของวันที่ที่ปรากฏจริง (ไม่เดา timezone เอง)
+function buildSparklineSeries(dailyResults) {
+  const dayMap = new Map();
+  dailyResults.forEach(({ rows }) => {
+    rows.forEach((row) => {
+      if (!dayMap.has(row.day)) dayMap.set(row.day, { botCount: 0, uptimeSum: 0, uptimeCount: 0, problemCount: 0 });
+      const entry = dayMap.get(row.day);
+      entry.botCount += 1;
+      if (row.uptime_pct !== null && row.uptime_pct !== undefined) {
+        entry.uptimeSum += row.uptime_pct;
+        entry.uptimeCount += 1;
+        if (row.uptime_pct < 95) entry.problemCount += 1;
+      }
+    });
+  });
+
+  const days = Array.from(dayMap.keys()).sort();
+  return {
+    totalSeries: days.map((d) => dayMap.get(d).botCount),
+    healthySeries: days.map((d) => {
+      const e = dayMap.get(d);
+      return e.uptimeCount > 0 ? e.uptimeSum / e.uptimeCount : null;
+    }),
+    problemSeries: days.map((d) => dayMap.get(d).problemCount),
+  };
+}
+
+function renderSparkline(canvasId, values, colorHex) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const wrap = canvas.closest('.summary-sparkline-wrap');
+
+  const validPoints = values.filter((v) => v !== null && v !== undefined);
+  if (sparklineCharts[canvasId]) {
+    sparklineCharts[canvasId].destroy();
+    delete sparklineCharts[canvasId];
+  }
+
+  // bot ใหม่ยังไม่มี daily หรือมีข้อมูลไม่พอทำเส้น (<2 จุด) → ซ่อน canvas ทั้งอัน ไม่แสดงเส้นว่าง/เส้นแบน
+  if (validPoints.length < 2 || !window.Chart) {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+  if (wrap) wrap.style.display = '';
+
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 32);
+  gradient.addColorStop(0, hexToRgba(colorHex, 0.18));
+  gradient.addColorStop(1, hexToRgba(colorHex, 0));
+
+  sparklineCharts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: values.map((_, i) => i),
+      datasets: [{
+        data: values,
+        borderColor: colorHex,
+        backgroundColor: gradient,
+        borderWidth: 1.5,
+        tension: 0.35,
+        fill: true,
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: { x: { display: false }, y: { display: false } },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      elements: { point: { radius: 0 } },
+    },
+  });
 }
 
 function updateActiveCardUI() {
