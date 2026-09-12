@@ -14,4 +14,9 @@
   --red:         #ff5c5c;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+:root[data-theme="light"] {
+  --bg-deep: #f6f8fb; --bg-panel: #fff; --bg-elevated: #eef2f7; --border: #d8e0ea;
+  --text: #172033; --text-dim: #5c6b80; --teal: #008f70; --teal-dim: #00735a;
+  --purple: #6656d8; --green: #16885c; --amber: #b86e00; --red: #d53e3e;
+}
 body { font-family: var(--font); background: var(--bg-deep); color: var(--text); }

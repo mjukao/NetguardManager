@@ -152,6 +152,43 @@ function getUptimeSummary(botName) {
   };
 }
 
+// Fleet-level read model for the dashboard. Docker remains the source of truth
+// for current container state; this only aggregates persisted monitoring data.
+function getFleetDashboard(botNames, days = 14) {
+  if (!Array.isArray(botNames) || botNames.length === 0) {
+    return { latest: { problems: 0, devices: { total: 0, up: 0, hosts: 0, aps: 0, switches: 0, cameras: 0 } }, daily: [] };
+  }
+
+  const names = botNames.map(String);
+  const placeholders = names.map(() => '?').join(',');
+  const latestRows = getDb().prepare(`
+    SELECT s.* FROM samples s
+    INNER JOIN (SELECT bot_name, MAX(ts) AS max_ts FROM samples WHERE bot_name IN (${placeholders}) GROUP BY bot_name) latest
+      ON latest.bot_name = s.bot_name AND latest.max_ts = s.ts
+  `).all(...names);
+
+  const latest = latestRows.reduce((acc, row) => {
+    const add = (key) => Number(row[key]) || 0;
+    acc.problems += add('problems_total');
+    acc.devices.total += add('hosts_total') + add('aps_total') + add('switches_total') + add('cameras_total');
+    acc.devices.up += add('hosts_up') + add('aps_up') + add('switches_up') + add('cameras_up');
+    acc.devices.hosts += add('hosts_total');
+    acc.devices.aps += add('aps_total');
+    acc.devices.switches += add('switches_total');
+    acc.devices.cameras += add('cameras_total');
+    return acc;
+  }, { problems: 0, devices: { total: 0, up: 0, hosts: 0, aps: 0, switches: 0, cameras: 0 } });
+
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const daily = getDb().prepare(`
+    SELECT day, AVG(uptime_pct) AS uptime_pct, AVG(avg_problems) AS avg_problems, MAX(max_problems) AS max_problems
+    FROM daily WHERE bot_name IN (${placeholders}) AND day >= ?
+    GROUP BY day ORDER BY day ASC
+  `).all(...names, cutoff);
+
+  return { latest, daily };
+}
+
 // สรุป samples ของวันที่กำหนด (YYYY-MM-DD, ขอบเขตวันแบบ UTC) ลง daily table — ใช้ INSERT OR REPLACE
 function rollupDaily(day) {
   const dayStart = Math.floor(new Date(`${day}T00:00:00Z`).getTime() / 1000);
@@ -244,6 +281,7 @@ module.exports = {
   getLastSampleTs,
   getDailyStats,
   getUptimeSummary,
+  getFleetDashboard,
   rollupDaily,
   pruneOldSamples,
   fillUnknownGaps,

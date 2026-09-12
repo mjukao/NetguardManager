@@ -213,7 +213,7 @@ tbody tr.row-in { animation: row-in .3s ease-out backwards; animation-delay: cal
 .create-form { display: grid; gap: 18px; }
 .create-form-section { border-top: 1px solid var(--border); padding-top: 16px; }
 .create-form-section:first-child { border-top: 0; padding-top: 0; }
-.form-section-heading { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+.form-section-heading { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
 .form-section-number { color: var(--teal); font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; font-weight: 700; line-height: 1.6; }
 .form-section-heading h4 { color: var(--text); font-size: 13px; font-weight: 700; margin: 0; }
 .form-section-heading p { color: var(--text-dim); font-size: 11.5px; line-height: 1.45; margin: 2px 0 0; }

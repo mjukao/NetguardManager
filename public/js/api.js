@@ -16,6 +16,10 @@ function apiListBots() {
   return fetchJson('/api/bots');
 }
 
+function apiGetDashboard() {
+  return fetchJson('/api/dashboard');
+}
+
 function apiGetBotHealth(id) {
   return fetchJson(`/api/bots/${id}/health`);
 }
@@ -111,6 +115,14 @@ async function loadBots() {
   updateRefreshNote();
   renderSummaryBar(bots);
   renderTable();
+
+  // Fleet read model is independent from the table so charts can refresh without
+  // coupling their calculations to row rendering.
+  try {
+    renderFleetDashboard(await apiGetDashboard(), bots);
+  } catch (err) {
+    renderFleetDashboard({ latest: { problems: 0, devices: { total: 0, up: 0, hosts: 0, aps: 0, switches: 0, cameras: 0 } }, daily: [] }, bots);
+  }
 
   // sparkline ใช้ daily stats ซึ่งเปลี่ยนไม่บ่อย — ไม่ต้อง await ให้บล็อก render หลัก
   // ตัว refreshSparklineData เองมี cache กันไม่ให้ query ซ้ำถี่กว่า 5 นาที

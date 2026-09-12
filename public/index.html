@@ -8,17 +8,24 @@
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/layout.css">
+<script>
+  (() => {
+    try {
+      if (localStorage.getItem('netguard-theme') === 'light') document.documentElement.dataset.theme = 'light';
+    } catch (_) {}
+  })();
+</script>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <span class="dot"></span>
-    <span class="sidebar-logo-text">NetGuard</span>
+    <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="sidebar-logo-text">NETGUARD<span> / OPS</span></span>
   </div>
   <nav class="sidebar-nav">
     <a class="nav-item active" href="#" aria-current="page">
-      <span class="nav-icon">&#9638;</span><span class="nav-item-text">Dashboard</span>
+      <span class="nav-icon">▦</span><span class="nav-item-text">ภาพรวม</span>
     </a>
     <button class="nav-item disabled" type="button" disabled title="ยังไม่พร้อมใช้งาน">
       <span class="nav-icon">&#129302;</span><span class="nav-item-text">Bots</span>
@@ -29,6 +36,10 @@
     <button class="nav-item disabled" type="button" disabled title="ยังไม่พร้อมใช้งาน">
       <span class="nav-icon">&#9881;</span><span class="nav-item-text">Settings</span>
     </button>
+  </nav>
+  <nav class="sidebar-nav sidebar-nav-live" aria-label="พื้นที่ทำงาน">
+    <a class="nav-item" href="#fleetPanel"><span class="nav-icon">◫</span><span class="nav-item-text">Bot fleet</span></a>
+    <a class="nav-item" href="#summaryBar"><span class="nav-icon">⌁</span><span class="nav-item-text">สถิติระบบ</span></a>
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-user">Admin</div>
@@ -47,6 +58,10 @@
         </div>
       </div>
       <div class="actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="เปิดโหมดสว่าง" title="เปิดโหมดสว่าง">
+          <span class="theme-toggle-icon" aria-hidden="true">☀</span>
+          <span class="theme-toggle-text">สว่าง</span>
+        </button>
         <button class="btn btn-ghost" id="pullImageBtn">อัปเดต Image</button>
         <button class="btn btn-teal" id="openCreateBtn">+ สร้าง Bot ใหม่</button>
       </div>
@@ -54,6 +69,10 @@
   </div>
 
   <div class="content">
+    <section class="command-header" aria-labelledby="pageTitle">
+      <div><p class="eyebrow">LIVE INFRASTRUCTURE</p><h1 id="pageTitle">ศูนย์ควบคุม Bot</h1></div>
+      <div class="live-indicator"><span></span>ตรวจสอบทุก 10 วินาที</div>
+    </section>
     <div class="summary-bar" id="summaryBar">
       <button type="button" class="summary-card" id="cardTotal" data-filter="">
         <div class="summary-label">Bot ทั้งหมด</div>
@@ -76,7 +95,38 @@
       </button>
     </div>
 
-    <div class="toolbar">
+    <section class="dashboard-grid" aria-label="สรุปสถานะระบบ">
+      <article class="dash-card dash-fleet">
+        <div class="dash-card-head"><span class="dash-icon">▦</span><h2>Fleet</h2><span>ตอนนี้</span></div>
+        <div class="dash-primary"><strong id="dashRunning">0</strong><span>กำลังทำงาน</span></div>
+        <div class="dash-split"><div><strong id="dashHealthy">0</strong><span>ปกติ</span></div><div><strong id="dashIssues">0</strong><span>ต้องดูแล</span></div></div>
+      </article>
+
+      <article class="dash-card dash-devices">
+        <div class="dash-card-head"><span class="dash-icon">⌁</span><h2>Devices</h2><span>ล่าสุด</span></div>
+        <div class="dash-primary"><strong id="dashDevices">—</strong><span>อุปกรณ์ที่ตรวจพบ</span></div>
+        <div class="device-bars" id="deviceBars"></div>
+      </article>
+
+      <article class="dash-card dash-ops">
+        <div class="dash-card-head"><span class="dash-icon">!</span><h2>Operations</h2><span>สถานะ</span></div>
+        <div class="dash-primary"><strong id="dashProblems">—</strong><span>ปัญหาที่รายงาน</span></div>
+        <div class="dash-split"><div><strong id="dashDeviceUptime">—</strong><span>Device online</span></div><div><strong id="dashContracts">0</strong><span>สัญญาใกล้หมด</span></div></div>
+      </article>
+
+      <article class="dash-card dash-health">
+        <div class="dash-card-head"><span class="dash-icon">◉</span><h2>System health</h2><span>Fleet</span></div>
+        <div class="health-layout"><div class="ring-wrap"><canvas id="healthChart"></canvas><div class="ring-label"><strong id="dashHealthPct">—</strong><span>healthy</span></div></div><div class="health-legend"><p><i class="legend-good"></i><span>ปกติ</span><strong id="dashLegendHealthy">0</strong></p><p><i class="legend-alert"></i><span>มีปัญหา</span><strong id="dashLegendIssues">0</strong></p><p><i class="legend-muted"></i><span>หยุดทำงาน</span><strong id="dashLegendStopped">0</strong></p></div></div>
+      </article>
+
+      <article class="dash-card dash-trend">
+        <div class="dash-card-head"><span class="dash-icon">⌇</span><h2>Reliability</h2><span>14 วัน</span></div>
+        <div class="trend-metrics"><div><strong id="dashAvgUptime">—</strong><span>Uptime เฉลี่ย</span></div><div><strong id="dashAvgProblems">—</strong><span>ปัญหาเฉลี่ย</span></div></div>
+        <div class="trend-chart-wrap"><canvas id="fleetTrendChart"></canvas></div>
+      </article>
+    </section>
+
+    <div class="toolbar" id="fleetPanel">
       <h2>Bot ทั้งหมด</h2>
       <div class="toolbar-refresh">
         <button type="button" class="btn-refresh-icon" id="refreshBtn" title="รีเฟรชตอนนี้" aria-label="รีเฟรชตอนนี้">&#8635;</button>
@@ -130,9 +180,7 @@
   <div class="modal modal-create">
     <div class="modal-header modal-create-header">
       <div>
-        <div class="modal-eyebrow">BOT DEPLOYMENT</div>
         <h3>สร้าง Bot ใหม่</h3>
-        <p class="modal-description">ตั้งค่ารหัสและการเชื่อมต่อสำหรับ Bot ตัวใหม่</p>
       </div>
       <button class="modal-close" id="createModalClose">&times;</button>
     </div>
@@ -141,16 +189,14 @@
       <form id="createForm" class="create-form">
         <section class="create-form-section create-form-primary" aria-labelledby="botIdentityTitle">
           <div class="form-section-heading">
-            <span class="form-section-number">01</span>
             <div>
               <h4 id="botIdentityTitle">ข้อมูล Bot</h4>
-              <p>ระบุรหัสสำหรับ Docker และชื่อบริษัทที่แสดงบน Dashboard</p>
             </div>
           </div>
         <div class="field">
           <label for="newBotName">รหัส Bot <span class="field-required">จำเป็น</span></label>
           <input type="text" id="newBotName" autocomplete="off" inputmode="latin" pattern="[a-zA-Z0-9]{2,31}" maxlength="31" placeholder="เช่น netguard01">
-          <div class="field-hint"><span class="hint-dot"></span>ภาษาอังกฤษและตัวเลขเท่านั้น · 2–31 ตัวอักษร</div>
+          <div class="field-hint">อังกฤษ/ตัวเลข · 2–31 ตัว</div>
         </div>
         <div class="field">
           <label for="newBotCompany">ชื่อบริษัท <span class="field-optional">ไม่บังคับ</span></label>
@@ -159,22 +205,18 @@
         </section>
         <section class="create-form-section" aria-labelledby="connectionTitle">
           <div class="form-section-heading">
-            <span class="form-section-number">02</span>
             <div>
               <h4 id="connectionTitle">การเชื่อมต่อ</h4>
-              <p>กำหนดพอร์ต และเลือกเชื่อม Cloudflare Tunnel ได้ภายหลัง</p>
             </div>
           </div>
           <div class="connection-grid">
         <div class="field">
           <label for="newBotPort">Port</label>
           <input type="number" id="newBotPort" min="1024" max="65535">
-          <div class="field-hint">เลือกพอร์ตว่างให้อัตโนมัติ</div>
         </div>
         <div class="field">
           <label for="newBotToken">Cloudflare Tunnel Token <span class="field-optional">ไม่บังคับ</span></label>
           <input type="text" id="newBotToken" autocomplete="off" placeholder="เว้นว่างได้ ถ้ายังไม่มี tunnel">
-          <div class="field-hint">เพิ่มภายหลังได้จากเมนูของ Bot</div>
           <details class="guide-accordion">
             <summary>วิธีหา Token</summary>
             <ol>
@@ -192,7 +234,6 @@
       </form>
     </div>
     <div class="modal-footer">
-      <span class="modal-footer-note">สร้างแล้วเริ่มตั้งค่าได้ทันที</span>
       <button class="btn btn-secondary" id="createCancelBtn">ยกเลิก</button>
       <button class="btn btn-teal" id="createSubmitBtn">สร้าง</button>
     </div>
@@ -310,6 +351,7 @@
 <script src="js/core/state.js"></script>
 <script src="js/api.js"></script>
 <script src="js/render.js"></script>
+<script src="js/dashboard-charts.js"></script>
 <script src="js/modals.js"></script>
 <script src="js/app.js"></script>
 </body>

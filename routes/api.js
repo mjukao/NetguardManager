@@ -28,6 +28,16 @@ router.get('/bots', async (req, res) => {
   }
 });
 
+router.get('/dashboard', async (req, res) => {
+  try {
+    const bots = await dockerService.listBots();
+    const names = bots.map((bot) => bot.name.replace(/^netguard-/, ''));
+    res.json(statsDb.getFleetDashboard(names));
+  } catch (err) {
+    handleError(res, err, 'Failed to get dashboard data');
+  }
+});
+
 router.get('/bots/:id/logs', async (req, res) => {
   try {
     const lines = parseInt(req.query.lines, 10) || 50;

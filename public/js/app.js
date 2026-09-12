@@ -137,6 +137,24 @@ statsModal.addEventListener('click', (e) => {
 document.getElementById('pullImageBtn').addEventListener('click', (e) => submitPullImage(e.currentTarget));
 document.getElementById('logoutBtn').addEventListener('click', submitLogout);
 
+// Theme preference
+const themeToggle = document.getElementById('themeToggle');
+function updateThemeToggle() {
+  const lightMode = document.documentElement.dataset.theme === 'light';
+  themeToggle.querySelector('.theme-toggle-icon').textContent = lightMode ? '☾' : '☀';
+  themeToggle.querySelector('.theme-toggle-text').textContent = lightMode ? 'มืด' : 'สว่าง';
+  themeToggle.setAttribute('aria-label', lightMode ? 'เปิดโหมดมืด' : 'เปิดโหมดสว่าง');
+  themeToggle.title = lightMode ? 'เปิดโหมดมืด' : 'เปิดโหมดสว่าง';
+}
+themeToggle.addEventListener('click', () => {
+  const useLight = document.documentElement.dataset.theme !== 'light';
+  document.documentElement.dataset.theme = useLight ? 'light' : 'dark';
+  try { localStorage.setItem('netguard-theme', useLight ? 'light' : 'dark'); } catch (_) {}
+  updateThemeToggle();
+  window.dispatchEvent(new Event('netguard-theme-change'));
+});
+updateThemeToggle();
+
 // ── Mobile sidebar (hamburger + overlay + Escape) ──
 function openSidebar() {
   sidebar.classList.add('show');
