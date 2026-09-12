@@ -127,32 +127,54 @@
 
 <!-- Create bot modal -->
 <div class="modal-overlay" id="createModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>สร้าง Bot ใหม่</h3>
+  <div class="modal modal-create">
+    <div class="modal-header modal-create-header">
+      <div>
+        <div class="modal-eyebrow">BOT DEPLOYMENT</div>
+        <h3>สร้าง Bot ใหม่</h3>
+        <p class="modal-description">ตั้งค่ารหัสและการเชื่อมต่อสำหรับ Bot ตัวใหม่</p>
+      </div>
       <button class="modal-close" id="createModalClose">&times;</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body modal-create-body">
       <div class="form-error" id="createError"></div>
-      <form id="createForm">
+      <form id="createForm" class="create-form">
+        <section class="create-form-section create-form-primary" aria-labelledby="botIdentityTitle">
+          <div class="form-section-heading">
+            <span class="form-section-number">01</span>
+            <div>
+              <h4 id="botIdentityTitle">ข้อมูล Bot</h4>
+              <p>ระบุรหัสสำหรับ Docker และชื่อบริษัทที่แสดงบน Dashboard</p>
+            </div>
+          </div>
         <div class="field">
-          <label for="newBotName">ชื่อ bot</label>
-          <input type="text" id="newBotName" autocomplete="off" placeholder="เช่น netguard-office">
-          <div class="field-hint">ใช้ได้เฉพาะ a-z, 0-9, - เท่านั้น (2-31 ตัวอักษร)</div>
+          <label for="newBotName">รหัส Bot <span class="field-required">จำเป็น</span></label>
+          <input type="text" id="newBotName" autocomplete="off" inputmode="latin" pattern="[a-zA-Z0-9]{2,31}" maxlength="31" placeholder="เช่น netguard01">
+          <div class="field-hint"><span class="hint-dot"></span>ภาษาอังกฤษและตัวเลขเท่านั้น · 2–31 ตัวอักษร</div>
         </div>
         <div class="field">
-          <label for="newBotCompany">ชื่อบริษัท <span style="font-weight:400;color:var(--text-dim);font-size:11px;">(optional)</span></label>
+          <label for="newBotCompany">ชื่อบริษัท <span class="field-optional">ไม่บังคับ</span></label>
           <input type="text" id="newBotCompany" autocomplete="off" placeholder="เช่น บริษัท ABC จำกัด">
         </div>
+        </section>
+        <section class="create-form-section" aria-labelledby="connectionTitle">
+          <div class="form-section-heading">
+            <span class="form-section-number">02</span>
+            <div>
+              <h4 id="connectionTitle">การเชื่อมต่อ</h4>
+              <p>กำหนดพอร์ต และเลือกเชื่อม Cloudflare Tunnel ได้ภายหลัง</p>
+            </div>
+          </div>
+          <div class="connection-grid">
         <div class="field">
           <label for="newBotPort">Port</label>
           <input type="number" id="newBotPort" min="1024" max="65535">
-          <div class="field-hint">แนะนำ port ว่างถัดไปให้อัตโนมัติ (แก้ไขได้)</div>
+          <div class="field-hint">เลือกพอร์ตว่างให้อัตโนมัติ</div>
         </div>
         <div class="field">
-          <label for="newBotToken">Cloudflare Tunnel Token <span style="font-weight:400;color:var(--text-dim);font-size:11px;">(optional)</span></label>
+          <label for="newBotToken">Cloudflare Tunnel Token <span class="field-optional">ไม่บังคับ</span></label>
           <input type="text" id="newBotToken" autocomplete="off" placeholder="เว้นว่างได้ ถ้ายังไม่มี tunnel">
-          <div class="field-hint">เว้นว่างได้ ถ้ายังไม่มี tunnel — เพิ่มทีหลังได้</div>
+          <div class="field-hint">เพิ่มภายหลังได้จากเมนูของ Bot</div>
           <details class="guide-accordion">
             <summary>วิธีหา Token</summary>
             <ol>
@@ -165,9 +187,12 @@
             </ol>
           </details>
         </div>
+          </div>
+        </section>
       </form>
     </div>
     <div class="modal-footer">
+      <span class="modal-footer-note">สร้างแล้วเริ่มตั้งค่าได้ทันที</span>
       <button class="btn btn-secondary" id="createCancelBtn">ยกเลิก</button>
       <button class="btn btn-teal" id="createSubmitBtn">สร้าง</button>
     </div>
@@ -281,6 +306,8 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
+<script src="js/core/dom.js"></script>
+<script src="js/core/state.js"></script>
 <script src="js/api.js"></script>
 <script src="js/render.js"></script>
 <script src="js/modals.js"></script>

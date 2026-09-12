@@ -3,7 +3,7 @@ const path = require('path');
 const config = require('../config');
 const logger = require('./logger');
 
-const BOT_NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const BOT_NAME_RE = /^[a-z0-9]{2,31}$/;
 const META_FIELDS = ['companyName', 'contactName', 'contactPhone', 'contractEnd', 'note'];
 const CONTRACT_END_RE = /^\d{4}-\d{2}-\d{2}$/;
 

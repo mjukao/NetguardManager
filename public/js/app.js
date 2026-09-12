@@ -1,74 +1,3 @@
-// ── State ──
-const tbody = document.getElementById('botTableBody');
-const botsCard = document.getElementById('botsCard');
-const emptyStateNone = document.getElementById('emptyStateNone');
-const emptyStateFiltered = document.getElementById('emptyStateFiltered');
-
-const searchInput = document.getElementById('searchInput');
-const searchClearBtn = document.getElementById('searchClearBtn');
-const refreshBtn = document.getElementById('refreshBtn');
-const refreshNote = document.getElementById('refreshNote');
-
-const logModal = document.getElementById('logModal');
-const logModalBody = document.getElementById('logModalBody');
-const logModalTitle = document.getElementById('logModalTitle');
-
-const createModal = document.getElementById('createModal');
-const createError = document.getElementById('createError');
-const newBotName = document.getElementById('newBotName');
-const newBotPort = document.getElementById('newBotPort');
-const createSubmitBtn = document.getElementById('createSubmitBtn');
-
-const removeModal = document.getElementById('removeModal');
-const removeConfirmText = document.getElementById('removeConfirmText');
-const removeDeleteFiles = document.getElementById('removeDeleteFiles');
-const removeConfirmBtn = document.getElementById('removeConfirmBtn');
-
-const attachTunnelModal = document.getElementById('attachTunnelModal');
-const attachTunnelTitle = document.getElementById('attachTunnelTitle');
-const attachTunnelError = document.getElementById('attachTunnelError');
-const attachTunnelToken = document.getElementById('attachTunnelToken');
-const attachTunnelSubmitBtn = document.getElementById('attachTunnelSubmitBtn');
-
-const newBotToken = document.getElementById('newBotToken');
-const newBotCompany = document.getElementById('newBotCompany');
-
-const editMetaModal = document.getElementById('editMetaModal');
-const editMetaTitle = document.getElementById('editMetaTitle');
-const editMetaError = document.getElementById('editMetaError');
-const editCompanyName = document.getElementById('editCompanyName');
-const editContactName = document.getElementById('editContactName');
-const editContactPhone = document.getElementById('editContactPhone');
-const editContractEnd = document.getElementById('editContractEnd');
-const editNote = document.getElementById('editNote');
-const editCreatedAtDisplay = document.getElementById('editCreatedAtDisplay');
-const editMetaSubmitBtn = document.getElementById('editMetaSubmitBtn');
-
-const statsModal = document.getElementById('statsModal');
-const statsModalTitle = document.getElementById('statsModalTitle');
-const statsModalBody = document.getElementById('statsModalBody');
-
-const toastContainer = document.getElementById('toastContainer');
-
-const sidebar = document.getElementById('sidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-const hamburgerBtn = document.getElementById('hamburgerBtn');
-
-let botsCache = [];
-let uptimeChart = null;
-let problemsChart = null;
-let removeTarget = null;
-let attachTunnelTarget = null;
-let editMetaTarget = null;
-let refreshTimer = null;
-let noteTimer = null;
-let searchQuery = '';
-let activeCardFilter = '';
-let lastRefreshedAt = null;
-let lastRenderedRowIds = null;
-let sparklineCharts = {};
-let sparklineCacheAt = 0;
-
 // ── Summary card filter (toggle) ──
 document.querySelectorAll('.summary-card').forEach((card) => {
   card.addEventListener('click', () => {
@@ -171,6 +100,7 @@ document.getElementById('createCancelBtn').addEventListener('click', closeCreate
 createModal.addEventListener('click', (e) => {
   if (e.target === createModal) closeCreateModal();
 });
+newBotName.addEventListener('input', sanitizeBotNameInput);
 document.getElementById('createSubmitBtn').addEventListener('click', submitCreateBot);
 
 // ── Attach tunnel modal ──

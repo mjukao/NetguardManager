@@ -1,4 +1,4 @@
-const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const NAME_RE = /^[a-z0-9]{2,31}$/;
 const STATE_LABEL = { up: 'Up', down: 'Down', unknown: 'Unknown' };
 
 function isValidTunnelToken(token) {
@@ -130,6 +130,23 @@ function closeCreateModal() {
   createModal.classList.remove('show');
 }
 
+function sanitizeBotNameInput() {
+  const raw = newBotName.value;
+  const hasInvalidCharacters = /[^a-zA-Z0-9]/.test(raw);
+  const sanitized = raw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 31);
+
+  if (raw !== sanitized) newBotName.value = sanitized;
+
+  if (hasInvalidCharacters) {
+    createError.textContent = 'โปรดใช้ตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น';
+    createError.classList.add('show');
+    newBotName.classList.add('error');
+  } else {
+    createError.classList.remove('show');
+    newBotName.classList.remove('error');
+  }
+}
+
 async function submitCreateBot() {
   createError.classList.remove('show');
   newBotName.classList.remove('error');
@@ -142,7 +159,7 @@ async function submitCreateBot() {
   const companyName = newBotCompany.value.trim();
 
   if (!NAME_RE.test(name)) {
-    createError.textContent = 'ชื่อ bot ไม่ถูกต้อง — ใช้ได้เฉพาะ a-z, 0-9, - (2-31 ตัวอักษร)';
+    createError.textContent = 'โปรดใช้ตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น (2-31 ตัวอักษร)';
     createError.classList.add('show');
     newBotName.classList.add('error');
     return;

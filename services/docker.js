@@ -8,7 +8,7 @@ const metaService = require('./meta');
 
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
-const BOT_NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const BOT_NAME_RE = /^[a-z0-9]{2,31}$/;
 const CLOUDFLARED_IMAGE = 'cloudflare/cloudflared:latest';
 
 const ENV_TEMPLATE = `# ---- LINE ----------------------------------------
@@ -222,7 +222,7 @@ async function getBotHealth(containerId) {
 
 async function createBot({ name, port, tunnelToken, companyName }) {
   if (!isValidBotName(name)) {
-    throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
+    throw validationError('โปรดใช้ตัวอักษรภาษาอังกฤษพิมพ์เล็กและตัวเลขเท่านั้น (2-31 ตัวอักษร)');
   }
   const portNum = Number(port);
   if (!isValidPort(portNum)) {
@@ -444,7 +444,7 @@ async function toggleTunnel(botDetail, action) {
 
 async function attachTunnel(botName, token) {
   if (!isValidBotName(botName)) {
-    throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
+    throw validationError('โปรดใช้ตัวอักษรภาษาอังกฤษพิมพ์เล็กและตัวเลขเท่านั้น (2-31 ตัวอักษร)');
   }
   if (!isValidTunnelToken(token)) {
     throw validationError('Invalid tunnel token — must be longer than 20 characters with no whitespace');
@@ -477,7 +477,7 @@ async function attachTunnel(botName, token) {
 
 async function detachTunnel(botName) {
   if (!isValidBotName(botName)) {
-    throw validationError('Invalid bot name — use lowercase letters, numbers, and hyphens only (2-31 chars, must start with a letter or digit)');
+    throw validationError('โปรดใช้ตัวอักษรภาษาอังกฤษพิมพ์เล็กและตัวเลขเท่านั้น (2-31 ตัวอักษร)');
   }
 
   const tunnelContainer = docker.getContainer(`netguard-${botName}-cloudflared`);
